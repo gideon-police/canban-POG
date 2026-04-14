@@ -2,203 +2,175 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | DEEP SPACE MONITOR V2</title>
+    <title>GIDEON | STRATEGIC MONITOR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: 'Segoe UI', sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; }
         
-        #space-canvas { position: absolute; top: 0; left: 0; z-index: 1; }
-        #chart { width: 100%; height: 100%; position: absolute; z-index: 10; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; }
+        #chart { width: 100%; height: 100%; position: absolute; z-index: 10; cursor: crosshair; }
 
-        .orbit-line { fill: none; stroke: rgba(0, 242, 255, 0.1); stroke-width: 1px; stroke-dasharray: 2,4; }
-
-        /* Анімація світіння планет */
-        .node circle { 
-            cursor: pointer; 
-            transition: transform 0.4s ease;
+        /* HUD - Верхні кути */
+        .hud-top-left {
+            position: absolute; top: 30px; left: 30px; z-index: 100;
+            color: #00f2ff; border-left: 4px solid #00f2ff; padding-left: 15px;
+            pointer-events: none;
         }
-        
-        .node:hover circle { transform: scale(1.1); }
-        
-        .node text { 
-            fill: #fff; font-size: 11px; font-weight: bold; pointer-events: none; 
-            text-shadow: 0 0 10px #000; text-transform: uppercase; letter-spacing: 2px;
+        .hud-top-right {
+            position: absolute; top: 30px; right: 30px; z-index: 100;
+            color: #ff4d4d; text-align: right; pointer-events: none;
         }
 
-        .planet-ring { fill: none; stroke-width: 3px; opacity: 0.4; pointer-events: none; }
+        /* Анімація голограми */
+        .node circle { cursor: pointer; transition: all 0.3s ease; }
+        .holo-ring { 
+            fill: none; stroke: rgba(0, 242, 255, 0.2); stroke-width: 1; 
+            stroke-dasharray: 10,5; animation: rotateHolo 10s linear infinite; 
+        }
+        @keyframes rotateHolo { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* HUD Вікно */
+        .orbit-line { fill: none; stroke: rgba(0, 242, 255, 0.05); stroke-width: 1; }
+
+        /* Стильне вікно HUD */
         .hud-popup {
-            position: absolute;
-            background: rgba(0, 15, 25, 0.9);
-            border: 1px solid var(--p-color);
-            padding: 20px;
-            z-index: 2000;
-            width: 320px;
-            backdrop-filter: blur(15px);
-            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 15px var(--p-color);
-            display: none;
-            border-radius: 4px;
-            border-right: 5px solid var(--p-color);
-            animation: slideUp 0.3s ease-out;
+            position: absolute; background: rgba(0, 10, 20, 0.9);
+            border: 1px solid var(--p-color); padding: 20px;
+            z-index: 2000; width: 340px; backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0,0,0,1), inset 0 0 10px var(--p-color);
+            display: none; color: #fff; font-family: sans-serif;
+            border-radius: 2px; animation: glitchOpen 0.2s ease;
         }
 
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .hud-popup h3 { margin: 0; color: var(--p-color); font-size: 18px; letter-spacing: 1px; }
-        .hud-popup .unit { font-size: 11px; color: #00f2ff; margin: 5px 0; display: block; opacity: 0.8; }
-        .hud-popup .impact { color: #ff4d4d; font-size: 13px; margin-top: 15px; background: rgba(255, 77, 77, 0.1); padding: 10px; border-radius: 4px; }
-        
-        .ui-overlay {
-            position: absolute; top: 40px; left: 40px; z-index: 100;
-            color: #00f2ff; text-transform: uppercase; letter-spacing: 5px;
-            pointer-events: none; border-left: 3px solid #00f2ff; padding-left: 20px;
+        @keyframes glitchOpen {
+            0% { transform: scaleY(0); opacity: 0; }
+            100% { transform: scaleY(1); opacity: 1; }
         }
+
+        .hud-popup h3 { margin: 0; color: var(--p-color); text-transform: uppercase; font-size: 18px; letter-spacing: 2px; }
+        .hud-popup .meta { font-size: 10px; color: #8df; margin: 5px 0; opacity: 0.7; }
+        .hud-popup .impact { 
+            margin-top: 15px; padding: 10px; background: rgba(255, 77, 77, 0.1); 
+            border-left: 3px solid #ff4d4d; font-size: 13px; color: #ffbcbc;
+        }
+
+        .risk-value { font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #ff4d4d; }
     </style>
 </head>
 <body>
 
-<div class="ui-overlay">
-    <h2 style="margin:0;">GIDEON // SYSTEM</h2>
-    <div style="font-size: 10px; opacity: 0.6;">Deep Analysis v.2.0 // Active Tracking</div>
+<div class="hud-top-left">
+    <h2 style="margin:0; letter-spacing: 5px;">GIDEON // CORE</h2>
+    <div id="status-text" style="font-size: 12px; opacity: 0.8;">SCANNING SECTOR: CHERKASY_REG...</div>
 </div>
 
-<canvas id="space-canvas"></canvas>
+<div class="hud-top-right">
+    <div style="font-size: 10px; opacity: 0.7;">THREAT LEVEL</div>
+    <div class="risk-value">CRITICAL</div>
+    <div style="font-size: 10px; opacity: 0.7; margin-top:5px;">OBJECTS TRACKED: 50+</div>
+</div>
+
+<canvas id="stars-bg"></canvas>
 <div id="chart"></div>
 
-<div id="hud" class="hud-popup">
-    <div style="float:right; cursor:pointer; color: #fff;" onclick="hideHUD()">✕</div>
-    <h3 id="h-title">Object</h3>
-    <span id="h-unit" class="unit"></span>
-    <p id="h-desc" style="font-size: 13px; color: #ccc; line-height: 1.5;"></p>
-    <div class="impact" id="h-impact">Impact...</div>
+<div id="hud-window" class="hud-popup">
+    <div style="float:right; cursor:pointer;" onclick="hideHUD()">[CLOSE]</div>
+    <h3 id="h-title">Planetary Issue</h3>
+    <span id="h-meta" class="meta">SECTOR_ANALYSIS // 2026</span>
+    <p id="h-desc" style="font-size: 13px; line-height: 1.5; color: #ccc;"></p>
+    <div class="impact" id="h-impact"></div>
 </div>
 
 <script>
-    // --- 1. ПЛИВУЧЕ ЗОРЯНЕ НЕБО ---
-    const canvas = document.getElementById('space-canvas');
+    // --- 1. КІНЕМАТОГРАФІЧНИЙ КОСМОС ---
+    const canvas = document.getElementById('stars-bg');
     const ctx = canvas.getContext('2d');
     let stars = [];
 
     function initStars() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        stars = Array.from({length: 300}, () => ({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            r: Math.random() * 1.5,
-            speed: 0.1 + Math.random() * 0.3, // Швидкість руху
-            opacity: Math.random()
+        stars = Array.from({length: 250}, () => ({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            r: Math.random() * 1.5, s: 0.2 + Math.random() * 0.5
         }));
     }
 
-    function animateStars() {
-        ctx.fillStyle = "#010409";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+    function drawStars() {
+        ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#fff";
         stars.forEach(s => {
-            ctx.globalAlpha = s.opacity;
-            ctx.fillStyle = "#fff";
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            ctx.fill();
-            
-            s.x -= s.speed; // Зірки пливуть вліво
-            if (s.x < 0) s.x = canvas.width;
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+            s.x -= s.s; if(s.x < 0) s.x = canvas.width;
         });
-        requestAnimationFrame(animateStars);
+        requestAnimationFrame(drawStars);
     }
-    initStars(); animateStars();
+    initStars(); drawStars();
 
-    // --- 2. ДАНІ ТА ПЛАНЕТИ ---
-    const planetsData = [
-        { id: 1, n: "Боді-камери", color: "#ff3e3e", r: 45, ring: true, u: "Всі підрозділи", d: "Систематичне невикористання відеореєстраторів під час служби.", i: "Відсутність доказової бази та контролю за поліцейськими." },
-        { id: 2, n: "Засоби захисту", color: "#ff9f00", r: 38, ring: false, u: "Черкаське РУП", d: "Відсутність шоломів та бронежилетів не нижче 4-го класу.", i: "Критична загроза життю ПОГ у разі нападу." },
-        { id: 3, n: "Транспорт", color: "#00d4ff", r: 48, ring: true, u: "Всі підрозділи", d: "Порушення транспортної дисципліни та журналів.", i: "Скасування дозволів на зберігання ТЗ, адмінвідповідальність." },
-        { id: 4, n: "МТЗ Станцій", color: "#9d00ff", r: 35, ring: false, u: "Всі підрозділи", d: "Невідповідність станцій нормам, брак сейфів та пального.", i: "Ризик крадіжки зброї, негативний імідж офіцера." },
-        { id: 5, n: "Комунікація", color: "#00ff7f", r: 40, ring: true, u: "Всі підрозділи", d: "Відсутність взаємодії ТВП з місцевою владою.", i: "Брак фінансування програм ПОГ (пальне, техзабезпечення)." }
+    // --- 2. ДАНІ ПЛАНЕТ ---
+    const data = [
+        { n: "Боді-камери", color: "#ff4d4d", d: "Невикористання портативних відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення офіцерів, нульовий контроль.", r: 45 },
+        { n: "Засоби захисту", color: "#ffa500", d: "Брак шоломів та бронежилетів (4 клас).", i: "Загроза життю ПОГ при нападі чи протиправних діях.", r: 35 },
+        { n: "Транспорт", color: "#00f2ff", d: "Порушення транспортної дисципліни.", i: "Скасування дозволів на зберігання ТЗ, вина керівника при ДТП.", r: 40 },
+        { n: "МТЗ Станцій", color: "#ae00ff", d: "Брак сейфів для зброї та пального.", i: "Ризик крадіжки зброї, негативний імідж офіцера в громаді.", r: 32 },
+        { n: "Комунікація", color: "#00ff88", d: "Слабка взаємодія ТВП з ОТГ.", i: "Брак фінансування програм ПОГ (пальне, техзабезпечення).", r: 38 }
     ];
 
-    const nodes = [{ id: 0, n: "CORE", color: "#00f2ff", r: 60, type: "sun" }].concat(planetsData.map(d => ({ ...d, type: "planet" })));
-    const links = planetsData.map(d => ({ source: 0, target: d.id }));
+    const nodes = [{ id: 0, n: "GIDEON CORE", color: "#00f2ff", r: 55, type: "sun" }].concat(data.map((d, i) => ({ id: i+1, ...d, type: "planet" })));
+    const links = data.map((_, i) => ({ source: 0, target: i+1 }));
 
     const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
     const g = svg.append("g");
 
-    // Орбіти (тепер вони теж будуть обертатись через CSS)
-    const orbits = g.append("g").attr("class", "orbits-layer");
-    [200, 320, 450].forEach(r => {
-        orbits.append("circle")
-            .attr("class", "orbit-line")
-            .attr("cx", window.innerWidth/2).attr("cy", window.innerHeight/2)
-            .attr("r", r);
-    });
-
     const sim = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.id).distance(280))
-        .force("charge", d3.forceManyBody().strength(-4000))
-        .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
+        .force("charge", d3.forceManyBody().strength(-4500))
+        .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
 
-    // Текстурні градієнти (для "ефекту планети")
+    // Орбіти
+    g.append("g").selectAll("circle").data([200, 320, 450]).enter().append("circle").attr("class", "orbit-line")
+        .attr("cx", window.innerWidth/2).attr("cy", window.innerHeight/2).attr("r", d => d);
+
+    const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
+        .attr("class", "node").on("click", (e, d) => { if(d.id !== 0) showHUD(e, d); });
+
+    // Голографічні кільця
+    node.append("circle").attr("class", "holo-ring").attr("r", d => d.r + 15);
+
+    // Градієнти планет
     const defs = svg.append("defs");
     nodes.forEach(d => {
-        const grad = defs.append("radialGradient").attr("id", `grad-${d.id}`).attr("cx", "40%").attr("cy", "40%");
-        grad.append("stop").attr("offset", "0%").attr("stop-color", d.color).attr("stop-opacity", 1);
-        grad.append("stop").attr("offset", "70%").attr("stop-color", d.color).attr("stop-opacity", 0.6);
+        const grad = defs.append("radialGradient").attr("id", `grad-${d.id}`).attr("cx", "30%").attr("cy", "30%");
+        grad.append("stop").attr("offset", "0%").attr("stop-color", d.color);
         grad.append("stop").attr("offset", "100%").attr("stop-color", "#000");
-        
-        // Маска для "атмосфери"
-        const filter = defs.append("filter").attr("id", `glow-${d.id}`);
-        filter.append("feGaussianBlur").attr("stdDeviation", "4").attr("result", "blur");
-        filter.append("feComposite").attr("in", "SourceGraphic").attr("in2", "blur").attr("operator", "over");
     });
 
-    const node = g.append("g").selectAll("g")
-        .data(nodes).enter().append("g")
-        .attr("class", "node")
-        .on("click", (event, d) => { if(d.id !== 0) showHUD(event, d); });
+    node.append("circle").attr("r", d => d.r).attr("fill", d => `url(#grad-${d.id})`);
+    node.append("text").attr("dy", d => d.r + 35).attr("text-anchor", "middle").text(d => d.n);
 
-    // Кільця (анімовані)
-    node.filter(d => d.ring).append("ellipse")
-        .attr("class", "planet-ring")
-        .attr("rx", d => d.r + 25)
-        .attr("ry", 15)
-        .attr("stroke", d => d.color)
-        .attr("transform", "rotate(-15)");
-
-    // Планети з фільтром світіння
-    node.append("circle")
-        .attr("r", d => d.r)
-        .attr("fill", d => `url(#grad-${d.id})`)
-        .attr("filter", d => `url(#glow-${d.id})`);
-
-    node.append("text").attr("dy", d => d.r + 30).attr("text-anchor", "middle").text(d => d.n);
-
-    // Анімація "плавання" планет (Float)
     sim.on("tick", () => {
-        const time = Date.now() * 0.001;
-        node.attr("transform", d => {
-            const floatY = d.id === 0 ? 0 : Math.sin(time + d.id) * 5;
-            return `translate(${d.x},${d.y + floatY})`;
-        });
-        
-        // Обертання орбіт
-        orbits.attr("transform", `rotate(${time * 2}, ${window.innerWidth/2}, ${window.innerHeight/2})`);
+        const t = Date.now() * 0.001;
+        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t + d.id)*5)})`);
     });
 
-    function showHUD(event, d) {
-        const hud = document.getElementById('hud');
+    function showHUD(e, d) {
+        const hud = document.getElementById('hud-window');
         hud.style.display = 'block';
         hud.style.setProperty('--p-color', d.color);
-        hud.style.left = Math.min(event.pageX + 30, window.innerWidth - 350) + 'px';
-        hud.style.top = Math.max(event.pageY - 100, 20) + 'px';
-        
+        hud.style.left = Math.min(e.pageX + 30, window.innerWidth - 380) + 'px';
+        hud.style.top = Math.max(e.pageY - 100, 20) + 'px';
         document.getElementById('h-title').innerText = d.n;
-        document.getElementById('h-unit').innerText = "OBJECT ID: " + d.u;
         document.getElementById('h-desc').innerText = d.d;
-        document.getElementById('h-impact').innerText = "АНАЛІЗ: " + d.i;
+        document.getElementById('h-impact').innerHTML = "<b>АНАЛІЗ НАСЛІДКІВ:</b><br>" + d.i;
     }
 
-    function hideHUD() { document.getElementById('hud').style.display = 'none'; }
+    function hideHUD() { document.getElementById('hud-window').style.display = 'none'; }
+
+    // Текст статусу, що змінюється
+    const statuses = ["SCANNING SECTOR: CHERKASY...", "ANALYZING LOGS...", "CHECKING GPS_DATA...", "UPDATING THREAT_MAP..."];
+    let sIdx = 0;
+    setInterval(() => {
+        document.getElementById('status-text').innerText = statuses[sIdx];
+        sIdx = (sIdx + 1) % statuses.length;
+    }, 3000);
 
     node.call(d3.drag()
         .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
