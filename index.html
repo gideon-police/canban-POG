@@ -151,7 +151,7 @@
                 </div>`;
         });
 
-        const nodes = [{ id: 0, n: "GIDEON", r: 60 }].concat(data.map(d => ({ ...d, r: 45 })));
+        const nodes = [{ id: 0, n: "ЦІЛЬОВА ПЕРЕВІРКА ПОЛІЦЕЙСЬКИХ ОФІЦЕРІВ ГРОМАДИ", r: 60 }].concat(data.map(d => ({ ...d, r: 45 })));
         const links = data.map(d => ({ source: 0, target: d.id }));
 
         const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
