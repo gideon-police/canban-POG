@@ -2,203 +2,166 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | STRATEGIC COMMAND</title>
+    <title>GIDEON | ULTIMATE COMMAND</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
-        :root {
-            --accent: #00f2ff;
-            --critical: #6b0a0a;
-            --bright-red: #ff3c3c;
-            --bg: #010408;
-        }
-
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: var(--bg); 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            color: #fff; 
-        }
-        
-        canvas { position: absolute; top: 0; left: 0; z-index: 1; opacity: 0.6; }
+        :root { --accent: #00f2ff; --critical: #6b0a0a; --bright-red: #ff3c3c; --bg: #010408; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: #fff; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
         #chart { width: 100%; height: 100%; position: absolute; z-index: 10; }
 
-        /* HUD Панель */
-        .hud-header {
-            position: absolute; top: 40px; left: 40px; z-index: 100;
-            border-left: 3px solid var(--accent); padding-left: 20px;
-            pointer-events: none; text-transform: uppercase;
+        /* HUD */
+        .hud-header { position: absolute; top: 40px; left: 40px; z-index: 100; border-left: 3px solid var(--accent); padding-left: 20px; pointer-events: none; }
+        .hud-header h1 { margin: 0; font-size: 24px; letter-spacing: 4px; font-weight: 300; text-transform: uppercase; }
+        
+        /* Кнопка Аудиту */
+        .audit-btn {
+            position: absolute; top: 40px; right: 40px; z-index: 200;
+            background: rgba(0, 242, 255, 0.1); border: 1px solid var(--accent);
+            color: var(--accent); padding: 10px 20px; cursor: pointer;
+            font-family: monospace; font-size: 12px; letter-spacing: 2px;
+            transition: all 0.3s;
         }
-        .hud-header h1 { margin: 0; font-size: 24px; letter-spacing: 4px; font-weight: 300; }
-        .hud-header .live-stats { font-size: 10px; color: var(--accent); margin-top: 8px; font-family: monospace; }
+        .audit-btn:hover { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent); }
 
         /* Кристали */
         .node { cursor: pointer; }
-        .crystal-outer { 
-            fill: rgba(0, 242, 255, 0.05); stroke: var(--accent); stroke-width: 1.5px;
-            filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4));
-            transition: all 0.4s;
-        }
-        .crystal-inner { 
-            fill: var(--accent); opacity: 0.15; 
-            animation: breathe 3s ease-in-out infinite alternate;
-        }
-        
-        @keyframes breathe {
-            from { opacity: 0.05; transform: scale(0.7); }
-            to { opacity: 0.3; transform: scale(0.9); }
-        }
+        .crystal-outer { fill: rgba(0, 242, 255, 0.05); stroke: var(--accent); stroke-width: 1.5px; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4)); }
+        .crystal-inner { fill: var(--accent); opacity: 0.15; animation: breathe 3s ease-in-out infinite alternate; }
+        @keyframes breathe { from { opacity: 0.05; transform: scale(0.7); } to { opacity: 0.3; transform: scale(0.9); } }
 
         /* Лазери */
-        .laser-line { 
-            stroke: var(--accent); stroke-opacity: 0.2; stroke-width: 1px;
-            stroke-dasharray: 5, 15; animation: flow 4s linear infinite;
-        }
+        .laser-line { stroke: var(--accent); stroke-opacity: 0.2; stroke-width: 1px; stroke-dasharray: 5, 15; animation: flow 4s linear infinite; }
         @keyframes flow { to { stroke-dashoffset: -100; } }
 
-        .node text { 
-            fill: #fff; font-size: 11px; letter-spacing: 2px; text-anchor: middle;
-            text-transform: uppercase; pointer-events: none; opacity: 0.7; font-weight: bold;
-        }
+        .node text { fill: #fff; font-size: 11px; letter-spacing: 2px; text-anchor: middle; text-transform: uppercase; pointer-events: none; opacity: 0.7; font-weight: bold; }
 
         /* HUD Popup */
         .hud-popup {
-            position: absolute; background: rgba(5, 10, 15, 0.92);
-            border: 1px solid var(--accent); border-radius: 4px;
-            padding: 0; z-index: 2000; width: 360px;
-            box-shadow: 0 0 50px rgba(0,0,0,1);
-            display: none; overflow: hidden; backdrop-filter: blur(10px);
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            position: absolute; background: rgba(5, 10, 15, 0.95); border: 1px solid var(--accent);
+            border-radius: 4px; padding: 0; z-index: 2000; width: 300px;
+            box-shadow: 0 0 30px rgba(0,0,0,1); overflow: hidden; backdrop-filter: blur(10px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .popup-header { 
-            background: rgba(0, 242, 255, 0.15); border-bottom: 1px solid var(--accent);
-            padding: 15px 20px; font-size: 14px; font-weight: bold; letter-spacing: 1px;
-        }
-        .popup-body { padding: 20px; }
-        
-        .impact-box { 
-            background: linear-gradient(90deg, var(--critical), #300000); 
-            color: #ffbaba; padding: 15px; margin-top: 15px; 
-            border-left: 4px solid var(--bright-red); font-size: 13px; line-height: 1.5;
-        }
-        .impact-box b { color: #fff; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 5px; }
-
-        .close-x { float: right; cursor: pointer; color: var(--accent); }
+        .popup-header { background: rgba(0, 242, 255, 0.15); border-bottom: 1px solid var(--accent); padding: 10px 15px; font-size: 12px; font-weight: bold; }
+        .popup-body { padding: 15px; }
+        .impact-box { background: linear-gradient(90deg, var(--critical), #300000); color: #ffbaba; padding: 10px; margin-top: 10px; border-left: 3px solid var(--bright-red); font-size: 11px; }
     </style>
 </head>
 <body>
 
 <div class="hud-header">
     <h1>GIDEON ANALYTICS</h1>
-    <div class="live-stats" id="stats">SYSTEM_LOAD: 0% // THREAT_LVL: STABLE</div>
+    <div id="stats" style="font-size: 10px; color: var(--accent); margin-top: 8px; font-family: monospace;">STATUS: READY // ENCRYPTION: ACTIVE</div>
 </div>
+
+<button class="audit-btn" onclick="runGlobalAudit()">RUN GLOBAL AUDIT</button>
 
 <canvas id="bg-canvas"></canvas>
 <div id="chart"></div>
 
-<div id="hud-window" class="hud-popup">
-    <div class="popup-header">
-        <span class="close-x" onclick="hideHUD()">[CLOSE]</span>
-        <span id="h-title">Planetary Issue</span>
-    </div>
-    <div class="popup-body">
-        <span id="h-unit" style="color: var(--accent); font-size: 11px; font-weight: bold;">UNIT_ID: NULL</span>
-        <p id="h-desc" style="margin: 10px 0 0 0; font-size: 14px; color: #cbd5e1;"></p>
-        <div class="impact-box">
-            <b>Наслідки:</b>
-            <div id="h-impact"></div>
-        </div>
-    </div>
-</div>
+<div id="popups-container"></div>
 
 <script>
-    // --- ЦИФРОВИЙ ПОТІК (BACKGROUND) ---
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
-    let streams = [];
+    let particles = [];
+    let mouse = { x: -100, y: -100 };
 
     function initBG() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        streams = Array.from({length: 40}, () => ({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            len: 50 + Math.random() * 150,
-            speed: 1 + Math.random() * 3
-        }));
     }
 
+    // Цифровий шлейф за мишкою
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX; mouse.y = e.clientY;
+        for(let i=0; i<2; i++) {
+            particles.push({ x: e.clientX, y: e.clientY, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 1 });
+        }
+    });
+
     function drawBG() {
-        ctx.fillStyle = "rgba(1, 4, 8, 0.2)"; ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.strokeStyle = "rgba(0, 242, 255, 0.1)"; ctx.lineWidth = 1;
-        streams.forEach(s => {
-            ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x, s.y + s.len); ctx.stroke();
-            s.y += s.speed; if(s.y > canvas.height) s.y = -s.len;
+        ctx.fillStyle = "rgba(1, 4, 8, 0.15)"; ctx.fillRect(0,0,canvas.width, canvas.height);
+        particles.forEach((p, i) => {
+            ctx.fillStyle = `rgba(0, 242, 255, ${p.life})`;
+            ctx.fillRect(p.x, p.y, 2, 2);
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+            if(p.life <= 0) particles.splice(i, 1);
         });
         requestAnimationFrame(drawBG);
     }
     initBG(); drawBG(); window.onresize = initBG;
 
-    // --- ЛІЧИЛЬНИКИ ---
-    setInterval(() => {
-        const load = 70 + Math.floor(Math.random() * 25);
-        document.getElementById('stats').innerText = `SYSTEM_LOAD: ${load}% // THREAT_LVL: CRITICAL_ALERT`;
-    }, 2000);
-
-    // --- ДАНІ ТА ГРАФ ---
     const data = [
-        { n: "Боді-камери", u: "Всі підрозділи", d: "Невикористання відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення, відсутність контролю.", r: 40 },
-        { n: "Засоби захисту", u: "Черкаське РУП", d: "Брак шоломів та бронежилетів (4 клас).", i: "Загроза життю ПОГ у разі нападу чи протиправних дій.", r: 35 },
-        { n: "Транспорт", u: "Всі підрозділи", d: "Порушення транспортної дисципліни.", i: "Скасування дозволів, адмінвідповідальність, вина керівника при ДТП.", r: 42 },
-        { n: "МТЗ Станцій", u: "Всі підрозділи", d: "Невідповідність станцій, брак сейфів.", i: "Ризик крадіжки зброї, негативний імідж офіцера в громаді.", r: 38 },
-        { n: "Комунікація", u: "Всі підрозділи", d: "Слабка взаємодія ТВП з ОТГ.", i: "Відсутність програм фінансування та забезпечення ПОГ.", r: 36 }
+        { id: 1, n: "Боді-камери", u: "Всі підрозділи", d: "Невикористання відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення." },
+        { id: 2, n: "Засоби захисту", u: "Черкаське РУП", d: "Брак шоломів/бронежилетів.", i: "Загроза життю ПОГ у разі нападу." },
+        { id: 3, n: "Транспорт", u: "Всі підрозділи", d: "Порушення дисципліни ТЗ.", i: "Скасування дозволів, адмінвідповідальність." },
+        { id: 4, n: "МТЗ Станцій", u: "Всі підрозділи", d: "Невідповідність нормам.", i: "Ризик викрадення зброї, негативний імідж." },
+        { id: 5, n: "Комунікація", u: "Всі підрозділи", d: "Слабка взаємодія ТВП-ОТГ.", i: "Брак фінансування програм ПОГ." }
     ];
 
-    const nodes = [{ id: 0, n: "CORE", type: "core", r: 50 }].concat(data.map((d, i) => ({ id: i+1, ...d, type: "issue" })));
-    const links = data.map((_, i) => ({ source: 0, target: i+1 }));
+    // Створення вікон
+    const container = document.getElementById('popups-container');
+    data.forEach(d => {
+        container.innerHTML += `
+            <div id="pop-${d.id}" class="hud-popup" style="display:none; opacity:0;">
+                <div class="popup-header"><span style="float:right;cursor:pointer" onclick="closeOne(${d.id})">×</span>${d.n}</div>
+                <div class="popup-body">
+                    <div style="font-size:10px;color:var(--accent)">${d.u}</div>
+                    <div style="font-size:12px;margin:5px 0">${d.d}</div>
+                    <div class="impact-box"><b>Наслідки:</b>${d.i}</div>
+                </div>
+            </div>`;
+    });
+
+    const nodes = [{ id: 0, n: "CORE", r: 50 }].concat(data.map(d => ({ ...d, r: 35 })));
+    const links = data.map(d => ({ source: 0, target: d.id }));
 
     const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
     const g = svg.append("g");
 
     const sim = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(250))
-        .force("charge", d3.forceManyBody().strength(-3500))
+        .force("link", d3.forceLink(links).id(d => d.id).distance(240))
+        .force("charge", d3.forceManyBody().strength(-3000))
         .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
 
     const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "laser-line");
 
     const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
-        .attr("class", "node").on("click", (e, d) => { if(d.id !== 0) showHUD(e, d); });
+        .attr("class", "node").on("click", (e, d) => { if(d.id !== 0) togglePop(e, d.id); });
 
     node.append("path").attr("class", "crystal-outer").attr("d", d => {
         const r = d.r; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
     });
-
     node.append("path").attr("class", "crystal-inner").attr("d", d => {
-        const r = d.r * 0.7; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
+        const r = d.r*0.7; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
     });
-
     node.append("text").attr("dy", d => d.r + 35).text(d => d.n);
 
     sim.on("tick", () => {
-        const t = Date.now() * 0.0015;
-        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t + d.id)*10)})`);
+        const t = Date.now()*0.0015;
+        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t+d.id)*10)})`);
         link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
     });
 
-    function showHUD(e, d) {
-        const h = document.getElementById('hud-window');
-        h.style.display = 'block'; h.style.opacity = '1';
-        h.style.left = Math.min(e.pageX + 30, window.innerWidth - 380) + 'px';
-        h.style.top = Math.max(e.pageY - 100, 20) + 'px';
-        document.getElementById('h-title').innerText = d.n;
-        document.getElementById('h-unit').innerText = "LOCATION_TAG: " + d.u;
-        document.getElementById('h-desc').innerText = d.d;
-        document.getElementById('h-impact').innerText = d.i;
+    function togglePop(e, id) {
+        const p = document.getElementById(`pop-${id}`);
+        p.style.display = 'block';
+        setTimeout(() => { p.style.opacity = '1'; p.style.left = e.pageX+'px'; p.style.top = e.pageY+'px'; }, 10);
     }
 
-    function hideHUD() { 
-        const h = document.getElementById('hud-window');
-        h.style.opacity = '0'; setTimeout(() => { h.style.display = 'none'; }, 300);
+    function closeOne(id) { document.getElementById(`pop-${id}`).style.opacity = '0'; setTimeout(() => document.getElementById(`pop-${id}`).style.display = 'none', 500); }
+
+    function runGlobalAudit() {
+        data.forEach((d, index) => {
+            const p = document.getElementById(`pop-${d.id}`);
+            p.style.display = 'block';
+            setTimeout(() => {
+                p.style.opacity = '1';
+                p.style.left = (50 + (index * 320) % (window.innerWidth - 300)) + 'px';
+                p.style.top = (150 + (index * 100) % (window.innerHeight - 300)) + 'px';
+            }, index * 200);
+        });
     }
 </script>
 </body>
