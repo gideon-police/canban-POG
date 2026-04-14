@@ -2,194 +2,200 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | CELESTIAL MONITOR</title>
+    <title>GIDEON | DEEP SPACE MONITOR V2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #010409; font-family: 'Segoe UI', sans-serif; }
         
-        /* Фон із зірками */
         #space-canvas { position: absolute; top: 0; left: 0; z-index: 1; }
-
         #chart { width: 100%; height: 100%; position: absolute; z-index: 10; }
 
-        /* Стилі орбіт */
-        .orbit-line { fill: none; stroke: rgba(0, 242, 255, 0.08); stroke-width: 1px; }
+        .orbit-line { fill: none; stroke: rgba(0, 242, 255, 0.1); stroke-width: 1px; stroke-dasharray: 2,4; }
 
-        /* Планети */
-        .node circle { cursor: pointer; transition: all 0.4s ease; }
-        .node:hover circle { filter: brightness(1.2) drop-shadow(0 0 30px var(--p-color)); }
+        /* Анімація світіння планет */
+        .node circle { 
+            cursor: pointer; 
+            transition: transform 0.4s ease;
+        }
+        
+        .node:hover circle { transform: scale(1.1); }
         
         .node text { 
             fill: #fff; font-size: 11px; font-weight: bold; pointer-events: none; 
             text-shadow: 0 0 10px #000; text-transform: uppercase; letter-spacing: 2px;
         }
 
-        /* Кільця планет */
-        .planet-ring { fill: none; stroke-width: 2px; opacity: 0.3; pointer-events: none; }
+        .planet-ring { fill: none; stroke-width: 3px; opacity: 0.4; pointer-events: none; }
 
-        /* Контекстне вікно (HUD) */
+        /* HUD Вікно */
         .hud-popup {
             position: absolute;
-            background: rgba(0, 10, 20, 0.85);
+            background: rgba(0, 15, 25, 0.9);
             border: 1px solid var(--p-color);
             padding: 20px;
             z-index: 2000;
             width: 320px;
             backdrop-filter: blur(15px);
-            box-shadow: 0 0 40px rgba(0,0,0,0.9), inset 0 0 15px var(--p-color);
+            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 15px var(--p-color);
             display: none;
-            border-radius: 0 15px 0 15px;
-            animation: bootUp 0.3s ease-out;
-            pointer-events: all;
+            border-radius: 4px;
+            border-right: 5px solid var(--p-color);
+            animation: slideUp 0.3s ease-out;
         }
 
-        @keyframes bootUp {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .hud-popup h3 { margin: 0; color: var(--p-color); font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-        .hud-popup .unit { font-size: 11px; color: #8df; margin-top: 5px; display: block; }
-        .hud-popup .impact { color: #ff4d4d; font-size: 13px; margin-top: 15px; border-left: 3px solid #ff4d4d; padding-left: 10px; font-weight: bold; }
+        .hud-popup h3 { margin: 0; color: var(--p-color); font-size: 18px; letter-spacing: 1px; }
+        .hud-popup .unit { font-size: 11px; color: #00f2ff; margin: 5px 0; display: block; opacity: 0.8; }
+        .hud-popup .impact { color: #ff4d4d; font-size: 13px; margin-top: 15px; background: rgba(255, 77, 77, 0.1); padding: 10px; border-radius: 4px; }
         
         .ui-overlay {
             position: absolute; top: 40px; left: 40px; z-index: 100;
-            color: #00f2ff; text-transform: uppercase; letter-spacing: 4px;
-            pointer-events: none;
+            color: #00f2ff; text-transform: uppercase; letter-spacing: 5px;
+            pointer-events: none; border-left: 3px solid #00f2ff; padding-left: 20px;
         }
-
-        .close-btn { float: right; cursor: pointer; color: #fff; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="ui-overlay">
-    <h2 style="margin:0;">GIDEON // DEEP SCAN</h2>
-    <div style="font-size: 10px; opacity: 0.6;">Sector: Cherkasy Region // 34 Communes</div>
+    <h2 style="margin:0;">GIDEON // SYSTEM</h2>
+    <div style="font-size: 10px; opacity: 0.6;">Deep Analysis v.2.0 // Active Tracking</div>
 </div>
 
 <canvas id="space-canvas"></canvas>
 <div id="chart"></div>
 
 <div id="hud" class="hud-popup">
-    <span class="close-btn" onclick="hideHUD()">[X]</span>
+    <div style="float:right; cursor:pointer; color: #fff;" onclick="hideHUD()">✕</div>
     <h3 id="h-title">Object</h3>
     <span id="h-unit" class="unit"></span>
     <p id="h-desc" style="font-size: 13px; color: #ccc; line-height: 1.5;"></p>
-    <div class="impact" id="h-impact">Impact analysis...</div>
+    <div class="impact" id="h-impact">Impact...</div>
 </div>
 
 <script>
-    // --- 1. МАЛЮЄМО ЗОРЯНЕ НЕБО ---
+    // --- 1. ПЛИВУЧЕ ЗОРЯНЕ НЕБО ---
     const canvas = document.getElementById('space-canvas');
     const ctx = canvas.getContext('2d');
     let stars = [];
 
     function initStars() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        stars = Array.from({length: 400}, () => ({
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        stars = Array.from({length: 300}, () => ({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            r: Math.random() * 1.2,
-            opacity: Math.random(),
-            blink: Math.random() * 0.02
+            r: Math.random() * 1.5,
+            speed: 0.1 + Math.random() * 0.3, // Швидкість руху
+            opacity: Math.random()
         }));
     }
 
     function animateStars() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#010409";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
         stars.forEach(s => {
             ctx.globalAlpha = s.opacity;
             ctx.fillStyle = "#fff";
             ctx.beginPath();
             ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
             ctx.fill();
-            s.opacity += s.blink;
-            if (s.opacity > 1 || s.opacity < 0) s.blink *= -1;
+            
+            s.x -= s.speed; // Зірки пливуть вліво
+            if (s.x < 0) s.x = canvas.width;
         });
         requestAnimationFrame(animateStars);
     }
-    initStars();
-    animateStars();
-    window.addEventListener('resize', initStars);
+    initStars(); animateStars();
 
-    // --- 2. ДАНІ ПЛАНЕТ ---
+    // --- 2. ДАНІ ТА ПЛАНЕТИ ---
     const planetsData = [
-        { id: 1, n: "Боді-камери", color: "#ff4d4d", r: 42, ring: true, u: "Всі підрозділи", d: "Систематичне невикористання відеореєстраторів під час служби.", i: "Відсутність доказової бази, безпідставні звинувачення офіцерів, нульовий контроль." },
-        { id: 2, n: "Засоби захисту", color: "#ffaa00", r: 35, ring: false, u: "Черкаське РУП", d: "Брак шоломів та бронежилетів не нижче 4-го класу захисту.", i: "Критична загроза життю ПОГ у разі нападу чи протиправних дій." },
-        { id: 3, n: "Транспорт", color: "#00f2ff", r: 45, ring: true, u: "Всі підрозділи поліції", d: "Порушення транспортної дисципліни, неналежне ведення журналів та дозволів.", i: "Адмінвідповідальність, скасування дозволів на зберігання ТЗ, вина керівника при ДТП." },
-        { id: 4, n: "МТЗ Станцій", color: "#ae00ff", r: 32, ring: false, u: "Всі підрозділи поліції", d: "Невідповідність станцій нормам, брак сейфів для рушниць та пального.", i: "Ризик несанкціонованого доступу до зброї, негативний імідж офіцера в громаді." },
-        { id: 5, n: "Комунікація", color: "#00ff88", r: 38, ring: true, u: "Всі підрозділи поліції", d: "Відсутність взаємодії керівництва ТВП з органами місцевого самоврядування.", i: "Відсутність програм фінансування на пальне, сейфи та техзабезпечення ПОГів." }
+        { id: 1, n: "Боді-камери", color: "#ff3e3e", r: 45, ring: true, u: "Всі підрозділи", d: "Систематичне невикористання відеореєстраторів під час служби.", i: "Відсутність доказової бази та контролю за поліцейськими." },
+        { id: 2, n: "Засоби захисту", color: "#ff9f00", r: 38, ring: false, u: "Черкаське РУП", d: "Відсутність шоломів та бронежилетів не нижче 4-го класу.", i: "Критична загроза життю ПОГ у разі нападу." },
+        { id: 3, n: "Транспорт", color: "#00d4ff", r: 48, ring: true, u: "Всі підрозділи", d: "Порушення транспортної дисципліни та журналів.", i: "Скасування дозволів на зберігання ТЗ, адмінвідповідальність." },
+        { id: 4, n: "МТЗ Станцій", color: "#9d00ff", r: 35, ring: false, u: "Всі підрозділи", d: "Невідповідність станцій нормам, брак сейфів та пального.", i: "Ризик крадіжки зброї, негативний імідж офіцера." },
+        { id: 5, n: "Комунікація", color: "#00ff7f", r: 40, ring: true, u: "Всі підрозділи", d: "Відсутність взаємодії ТВП з місцевою владою.", i: "Брак фінансування програм ПОГ (пальне, техзабезпечення)." }
     ];
 
-    const nodes = [{ id: 0, n: "GIDEON CORE", color: "#00f2ff", r: 50, type: "sun" }].concat(planetsData.map(d => ({ ...d, type: "planet" })));
+    const nodes = [{ id: 0, n: "CORE", color: "#00f2ff", r: 60, type: "sun" }].concat(planetsData.map(d => ({ ...d, type: "planet" })));
     const links = planetsData.map(d => ({ source: 0, target: d.id }));
 
     const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
     const g = svg.append("g");
 
-    // Орбіти
-    g.append("g").selectAll("circle")
-        .data([180, 290, 400])
-        .enter().append("circle")
-        .attr("class", "orbit-line")
-        .attr("cx", window.innerWidth/2).attr("cy", window.innerHeight/2)
-        .attr("r", d => d);
+    // Орбіти (тепер вони теж будуть обертатись через CSS)
+    const orbits = g.append("g").attr("class", "orbits-layer");
+    [200, 320, 450].forEach(r => {
+        orbits.append("circle")
+            .attr("class", "orbit-line")
+            .attr("cx", window.innerWidth/2).attr("cy", window.innerHeight/2)
+            .attr("r", r);
+    });
 
     const sim = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(260))
-        .force("charge", d3.forceManyBody().strength(-3500))
+        .force("link", d3.forceLink(links).id(d => d.id).distance(280))
+        .force("charge", d3.forceManyBody().strength(-4000))
         .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
+
+    // Текстурні градієнти (для "ефекту планети")
+    const defs = svg.append("defs");
+    nodes.forEach(d => {
+        const grad = defs.append("radialGradient").attr("id", `grad-${d.id}`).attr("cx", "40%").attr("cy", "40%");
+        grad.append("stop").attr("offset", "0%").attr("stop-color", d.color).attr("stop-opacity", 1);
+        grad.append("stop").attr("offset", "70%").attr("stop-color", d.color).attr("stop-opacity", 0.6);
+        grad.append("stop").attr("offset", "100%").attr("stop-color", "#000");
+        
+        // Маска для "атмосфери"
+        const filter = defs.append("filter").attr("id", `glow-${d.id}`);
+        filter.append("feGaussianBlur").attr("stdDeviation", "4").attr("result", "blur");
+        filter.append("feComposite").attr("in", "SourceGraphic").attr("in2", "blur").attr("operator", "over");
+    });
 
     const node = g.append("g").selectAll("g")
         .data(nodes).enter().append("g")
         .attr("class", "node")
         .on("click", (event, d) => { if(d.id !== 0) showHUD(event, d); });
 
-    // Кільця
+    // Кільця (анімовані)
     node.filter(d => d.ring).append("ellipse")
         .attr("class", "planet-ring")
-        .attr("rx", d => d.r + 20)
-        .attr("ry", 12)
+        .attr("rx", d => d.r + 25)
+        .attr("ry", 15)
         .attr("stroke", d => d.color)
         .attr("transform", "rotate(-15)");
 
-    // Тіла планет
-    const defs = svg.append("defs");
-    nodes.forEach(d => {
-        const grad = defs.append("radialGradient").attr("id", `grad-${d.id}`).attr("cx", "35%").attr("cy", "35%");
-        grad.append("stop").attr("offset", "0%").attr("stop-color", d.color);
-        grad.append("stop").attr("offset", "100%").attr("stop-color", "#000");
-    });
-
+    // Планети з фільтром світіння
     node.append("circle")
         .attr("r", d => d.r)
         .attr("fill", d => `url(#grad-${d.id})`)
-        .style("--p-color", d => d.color);
+        .attr("filter", d => `url(#glow-${d.id})`);
 
-    node.append("text").attr("dy", d => d.r + 25).attr("text-anchor", "middle").text(d => d.n);
+    node.append("text").attr("dy", d => d.r + 30).attr("text-anchor", "middle").text(d => d.n);
 
+    // Анімація "плавання" планет (Float)
     sim.on("tick", () => {
-        node.attr("transform", d => `translate(${d.x},${d.y})`);
+        const time = Date.now() * 0.001;
+        node.attr("transform", d => {
+            const floatY = d.id === 0 ? 0 : Math.sin(time + d.id) * 5;
+            return `translate(${d.x},${d.y + floatY})`;
+        });
+        
+        // Обертання орбіт
+        orbits.attr("transform", `rotate(${time * 2}, ${window.innerWidth/2}, ${window.innerHeight/2})`);
     });
 
     function showHUD(event, d) {
         const hud = document.getElementById('hud');
         hud.style.display = 'block';
         hud.style.setProperty('--p-color', d.color);
-        
-        // Позиціонування вікна
-        let left = event.pageX + 40;
-        if (left + 320 > window.innerWidth) left = event.pageX - 360;
-        
-        hud.style.left = left + 'px';
-        hud.style.top = (event.pageY - 100) + 'px';
+        hud.style.left = Math.min(event.pageX + 30, window.innerWidth - 350) + 'px';
+        hud.style.top = Math.max(event.pageY - 100, 20) + 'px';
         
         document.getElementById('h-title').innerText = d.n;
-        document.getElementById('h-unit').innerText = "ПІДРОЗДІЛ: " + d.u;
+        document.getElementById('h-unit').innerText = "OBJECT ID: " + d.u;
         document.getElementById('h-desc').innerText = d.d;
-        document.getElementById('h-impact').innerText = "НАСЛІДКИ: " + d.i;
+        document.getElementById('h-impact').innerText = "АНАЛІЗ: " + d.i;
     }
 
     function hideHUD() { document.getElementById('hud').style.display = 'none'; }
