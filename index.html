@@ -2,42 +2,62 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | OPTIMIZED COMMAND</title>
+    <title>GIDEON | STRATEGIC COMMAND</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         :root { --accent: #00f2ff; --critical: #6b0a0a; --bright-red: #ff3c3c; --bg: #010408; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: #fff; }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        #chart { width: 100%; height: 100%; position: absolute; z-index: 10; }
+        
+        /* Контейнер графа - прихований на старті */
+        #chart { width: 100%; height: 100%; position: absolute; z-index: 10; display: none; opacity: 0; transition: opacity 1s ease; }
 
-        /* HUD - Оптимізований розмір */
-        .hud-header { position: absolute; top: 40px; left: 40px; z-index: 100; border-left: 4px solid var(--accent); padding-left: 20px; pointer-events: none; }
+        /* Стартовий екран */
+        #start-screen {
+            position: absolute; width: 100%; height: 100%; z-index: 500;
+            display: flex; justify-content: center; align-items: center;
+            background: radial-gradient(circle, rgba(1, 4, 8, 0.5) 0%, rgba(0,0,0,1) 100%);
+            transition: all 0.8s ease;
+        }
+        .intro-card {
+            background: rgba(5, 15, 25, 0.9); border: 1px solid var(--accent);
+            padding: 40px; border-radius: 4px; text-align: center; max-width: 600px;
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.2); backdrop-filter: blur(10px);
+        }
+        .intro-card h2 { color: var(--accent); margin-top: 0; letter-spacing: 2px; text-transform: uppercase; font-size: 22px; }
+        .intro-card p { font-size: 18px; line-height: 1.6; color: #ccc; margin: 25px 0; }
+        .start-btn {
+            background: none; border: 1px solid var(--accent); color: var(--accent);
+            padding: 15px 40px; font-size: 16px; cursor: pointer; letter-spacing: 3px;
+            transition: all 0.3s; font-weight: bold;
+        }
+        .start-btn:hover { background: var(--accent); color: #000; box-shadow: 0 0 30px var(--accent); }
+
+        /* HUD блоки */
+        .hud-header { position: absolute; top: 40px; left: 40px; z-index: 100; border-left: 4px solid var(--accent); padding-left: 20px; pointer-events: none; opacity: 0; transition: 1s; }
         .hud-header h1 { margin: 0; font-size: 32px; letter-spacing: 5px; font-weight: 300; text-transform: uppercase; }
         
-        /* Кнопка Аудиту */
         .audit-btn {
             position: absolute; top: 40px; right: 40px; z-index: 200;
             background: rgba(0, 242, 255, 0.1); border: 2px solid var(--accent);
             color: var(--accent); padding: 15px 30px; cursor: pointer;
             font-family: monospace; font-size: 14px; letter-spacing: 2px;
-            transition: all 0.3s; font-weight: bold;
+            display: none; opacity: 0; transition: 1s; font-weight: bold;
         }
         .audit-btn:hover { background: var(--accent); color: #000; box-shadow: 0 0 30px var(--accent); }
 
-        /* Кристали - Середній розмір */
+        /* Кристали */
         .node { cursor: pointer; }
         .crystal-outer { fill: rgba(0, 242, 255, 0.05); stroke: var(--accent); stroke-width: 2px; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4)); }
         .crystal-inner { fill: var(--accent); opacity: 0.2; animation: breathe 3s ease-in-out infinite alternate; }
         @keyframes breathe { from { opacity: 0.1; transform: scale(0.7); } to { opacity: 0.3; transform: scale(0.95); } }
 
-        /* Лазери */
         .laser-line { stroke: var(--accent); stroke-opacity: 0.3; stroke-width: 2px; stroke-dasharray: 8, 15; animation: flow 4s linear infinite; }
         @keyframes flow { to { stroke-dashoffset: -100; } }
 
-        /* Текст вузлів */
         .node text { fill: #fff; font-size: 14px; letter-spacing: 2px; text-anchor: middle; text-transform: uppercase; pointer-events: none; font-weight: bold; text-shadow: 0 0 10px #000; }
 
-        /* HUD Popup - Компактніший */
+        /* Popups */
         .hud-popup {
             position: absolute; background: rgba(5, 10, 15, 0.95); border: 1px solid var(--accent);
             border-radius: 6px; padding: 0; z-index: 2000; width: 380px;
@@ -53,41 +73,40 @@
 </head>
 <body>
 
-<div class="hud-header">
+<div id="start-screen">
+    <div class="intro-card">
+        <h2>СИСТЕМА GIDEON: ЗВІТ</h2>
+        <p>Проведена цільова перевірка поліцейських офіцерів громади. <br><br> Загалом комісією відвідано <b>34 громади</b> <br> та перевірено понад <b>50 офіцерів ПОГ</b>.</p>
+        <button class="start-btn" onclick="initializeSystem()">РОЗПОЧАТИ АНАЛІЗ</button>
+    </div>
+</div>
+
+<div class="hud-header" id="main-hud">
     <h1>GIDEON ANALYTICS</h1>
     <div id="stats" style="font-size: 12px; color: var(--accent); margin-top: 10px; font-family: monospace; letter-spacing: 1px;">STATUS: ACTIVE // SECTOR: CHERKASY</div>
 </div>
 
-<button class="audit-btn" onclick="runGlobalAudit()">RUN GLOBAL AUDIT</button>
+<button id="audit-trigger" class="audit-btn" onclick="runGlobalAudit()">RUN GLOBAL AUDIT</button>
 
 <canvas id="bg-canvas"></canvas>
 <div id="chart"></div>
-
 <div id="popups-container"></div>
 
 <script>
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
-    let particles = [];
+    let stars = [];
 
     function initBG() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        stars = Array.from({length: 300}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*1.5, s: Math.random()*0.2 }));
     }
-
-    window.addEventListener('mousemove', (e) => {
-        for(let i=0; i<2; i++) {
-            particles.push({ x: e.clientX, y: e.clientY, vx: (Math.random()-0.5)*3, vy: (Math.random()-0.5)*3, life: 1, size: Math.random()*3 });
-        }
-    });
-
+    
+    // Зоряний фон
     function drawBG() {
-        ctx.fillStyle = "rgba(1, 4, 8, 0.2)"; ctx.fillRect(0,0,canvas.width, canvas.height);
-        particles.forEach((p, i) => {
-            ctx.fillStyle = `rgba(0, 242, 255, ${p.life})`;
-            ctx.fillRect(p.x, p.y, p.size, p.size);
-            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-            if(p.life <= 0) particles.splice(i, 1);
-        });
+        ctx.fillStyle = "#010408"; ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#fff";
+        stars.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); s.x -= s.s; if(s.x < 0) s.x = canvas.width; });
         requestAnimationFrame(drawBG);
     }
     initBG(); drawBG(); window.onresize = initBG;
@@ -95,53 +114,78 @@
     const data = [
         { id: 1, n: "КОНТРОЛЬ ФІКСАЦІЇ", u: "Всі підрозділи", d: "Систематичне невикористання поліцейськими відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення, нульовий контроль." },
         { id: 2, n: "БЕЗПЕКА ОФІЦЕРА", u: "Черкаське РУП", d: "Брак належних засобів індивідуального захисту (шолом, бронежилет не нижче 4-го класу).", i: "Загроза життю поліцейського у разі нападу чи протиправних дій." },
-        { id: 3, n: "ТРАНСПОРТНИЙ РЕЖИМ", u: "Всі підрозділи", d: "Порушення вимог транспортної дисципліни (відсутність, або неналежне ведення шляхових листів, бортових журналів, відсутність дозволів на світло-звукові сигнали, тощо)", i: "Скасування дозволів, адмінвідповідальність, вина керівника при ДТП." },
-        { id: 4, n: "ТЕХНІЧНИЙ СТАН", u: "Всі підрозділи", d: "Неналежне матеріально – технічне забезпечення (невідповідність поліцейських станцій вимогам нормативно – правових актів, відсутність автомобільних сейфів для зберігання помпової рушниці, брак пального, відсутність автомобільних відеореєстраторів, тощо).", i: "неналежні профілактичні заходи на території обслуговування, ризик несанкціонованого доступу до спеціального засобу (рушниці), відсутність доказової бази, під час документування порушень в сфері ПДР, загальне ставлення та імідж поліцейського офіцера в громаді." },
-        { id: 5, n: "Комунікація", u: "Всі підрозділи", d: "Слабка взаємодія ТВП з органами місцевого самоврядування.", i: "Відсутність програм належного матеріально – технічного забезпечення ПОГів (пальне, сейфи, конуси, стрічки, тощо)." }
+        { id: 3, n: "ЛОГІСТИКА ТЗ", u: "Всі підрозділи", d: "Порушення транспортної дисципліни (шляхові листи, бортові журнали, дозволи на СЗС).", i: "Скасування дозволів, адмінвідповідальність, вина керівника при ДТП." },
+        { id: 4, n: "ТЕХНІЧНИЙ СТАН", u: "Всі підрозділи", d: "Неналежне матеріально-технічне забезпечення (станції, сейфи, пальне).", i: "Ризик несанкціонованого доступу до зброї, негативний імідж офіцера в громаді." },
+        { id: 5, n: "ВЗАЄМОДІЯ", u: "Всі підрозділи", d: "Слабка взаємодія ТВП з органами місцевого самоврядування.", i: "Відсутність програм фінансування та належного забезпечення ПОГів." }
     ];
 
-    const container = document.getElementById('popups-container');
-    data.forEach(d => {
-        container.innerHTML += `
-            <div id="pop-${d.id}" class="hud-popup" style="display:none; opacity:0;">
-                <div class="popup-header"><span class="close-x" onclick="closeOne(${d.id})">×</span>${d.n}</div>
-                <div class="popup-body">
-                    <div style="font-size:11px;color:var(--accent);font-weight:bold;margin-bottom:5px">${d.u}</div>
-                    <div style="font-size:14px;margin:10px 0;line-height:1.4">${d.d}</div>
-                    <div class="impact-box"><b>Наслідки:</b>${d.i}</div>
-                </div>
-            </div>`;
-    });
+    // Логіка ініціалізації системи
+    function initializeSystem() {
+        document.getElementById('start-screen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('start-screen').style.display = 'none';
+            const chart = document.getElementById('chart');
+            chart.style.display = 'block';
+            setTimeout(() => { 
+                chart.style.opacity = '1'; 
+                document.getElementById('main-hud').style.opacity = '1';
+                const auditBtn = document.getElementById('audit-trigger');
+                auditBtn.style.display = 'block';
+                setTimeout(() => auditBtn.style.opacity = '1', 100);
+            }, 100);
+            renderChart();
+        }, 800);
+    }
 
-    const nodes = [{ id: 0, n: "CORE", r: 60 }].concat(data.map(d => ({ ...d, r: 45 })));
-    const links = data.map(d => ({ source: 0, target: d.id }));
+    function renderChart() {
+        const container = document.getElementById('popups-container');
+        data.forEach(d => {
+            container.innerHTML += `
+                <div id="pop-${d.id}" class="hud-popup" style="display:none; opacity:0;">
+                    <div class="popup-header"><span class="close-x" onclick="closeOne(${d.id})">×</span>${d.n}</div>
+                    <div class="popup-body">
+                        <div style="font-size:11px;color:var(--accent);font-weight:bold;margin-bottom:5px">${d.u}</div>
+                        <div style="font-size:14px;margin:10px 0;line-height:1.4">${d.d}</div>
+                        <div class="impact-box"><b>Наслідки:</b>${d.i}</div>
+                    </div>
+                </div>`;
+        });
 
-    const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
-    const g = svg.append("g");
+        const nodes = [{ id: 0, n: "GIDEON", r: 60 }].concat(data.map(d => ({ ...d, r: 45 })));
+        const links = data.map(d => ({ source: 0, target: d.id }));
 
-    const sim = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(260))
-        .force("charge", d3.forceManyBody().strength(-4000))
-        .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
+        const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
+        const g = svg.append("g");
 
-    const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "laser-line");
+        const sim = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(260))
+            .force("charge", d3.forceManyBody().strength(-4000))
+            .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
 
-    const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
-        .attr("class", "node").on("click", (e, d) => { if(d.id !== 0) togglePop(e, d.id); });
+        const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "laser-line");
 
-    node.append("path").attr("class", "crystal-outer").attr("d", d => {
-        const r = d.r; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
-    });
-    node.append("path").attr("class", "crystal-inner").attr("d", d => {
-        const r = d.r*0.7; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
-    });
-    node.append("text").attr("dy", d => d.r + 35).text(d => d.n);
+        const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
+            .attr("class", "node").on("click", (e, d) => { if(d.id !== 0) togglePop(e, d.id); });
 
-    sim.on("tick", () => {
-        const t = Date.now()*0.0015;
-        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t+d.id)*10)})`);
-        link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-    });
+        node.append("path").attr("class", "crystal-outer").attr("d", d => {
+            const r = d.r; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
+        });
+        node.append("path").attr("class", "crystal-inner").attr("d", d => {
+            const r = d.r*0.7; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
+        });
+        node.append("text").attr("dy", d => d.r + 35).text(d => d.n);
+
+        sim.on("tick", () => {
+            const t = Date.now()*0.0015;
+            node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t+d.id)*10)})`);
+            link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+        });
+
+        node.call(d3.drag()
+            .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+    }
 
     function togglePop(e, id) {
         const p = document.getElementById(`pop-${id}`);
@@ -162,11 +206,6 @@
             }, index * 200);
         });
     }
-
-    node.call(d3.drag()
-        .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-        .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
-        .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
 </script>
 </body>
 </html>
