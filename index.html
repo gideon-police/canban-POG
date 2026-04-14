@@ -2,86 +2,103 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | ANALYTIC INTERFACE</title>
+    <title>GIDEON | CRYSTAL INTERFACE</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         :root {
             --accent: #00f2ff;
-            --critical: #ff3030;
-            --bg: #05070a;
+            --critical: #800e13; /* Глибокий вишневий */
+            --critical-bright: #ff4d4d;
+            --bg: #020408;
         }
 
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             overflow: hidden; background: var(--bg); 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
             color: #fff; 
         }
         
         canvas { position: absolute; top: 0; left: 0; z-index: 1; }
         #chart { width: 100%; height: 100%; position: absolute; z-index: 10; }
 
-        /* HUD - Панель управління */
         .hud-header {
             position: absolute; top: 40px; left: 40px; z-index: 100;
-            border-left: 4px solid var(--accent); padding-left: 20px;
+            border-left: 3px solid var(--accent); padding-left: 20px;
             pointer-events: none;
         }
-        .hud-header h1 { margin: 0; font-size: 26px; letter-spacing: 1px; text-transform: uppercase; }
-        .hud-header p { margin: 5px 0; font-size: 13px; color: var(--accent); opacity: 0.8; }
+        .hud-header h1 { margin: 0; font-size: 24px; letter-spacing: 3px; font-weight: 300; text-transform: uppercase; }
 
-        /* Стиль Вузлів (Кристали) */
+        /* Магія кристалів */
         .node { cursor: pointer; }
-        .crystal-shape { 
-            fill: #1a2635; stroke: var(--accent); stroke-width: 2px;
-            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.3));
+        .crystal-outer { 
+            fill: rgba(0, 242, 255, 0.1); stroke: var(--accent); stroke-width: 1px;
+            filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4));
+            transition: all 0.4s ease;
         }
-        .node-core .crystal-shape { fill: var(--accent); stroke: #fff; }
-
-        /* Зв'язки-лазери */
-        .laser-line { 
-            stroke: var(--accent); stroke-opacity: 0.4; stroke-width: 2px;
-            stroke-dasharray: 8; animation: pulse-dash 2s linear infinite;
+        .crystal-inner { 
+            fill: var(--accent); opacity: 0.2; 
+            animation: pulse-inner 2s ease-in-out infinite alternate;
         }
-        @keyframes pulse-dash { to { stroke-dashoffset: -16; } }
-
-        /* Текстові підписи */
-        .node text { 
-            fill: #fff; font-size: 13px; font-weight: 600; text-anchor: middle;
-            text-transform: uppercase; pointer-events: none;
-        }
-
-        /* HUD Popup - Вікно інформації */
-        .hud-popup {
-            position: absolute; background: #0c121d;
-            border: 2px solid var(--accent); border-radius: 8px;
-            padding: 0; z-index: 2000; width: 350px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            display: none; overflow: hidden; animation: popIn 0.2s ease-out;
-        }
-
-        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } }
-
-        .popup-header { background: var(--accent); color: #000; padding: 15px; font-weight: bold; font-size: 16px; }
-        .popup-body { padding: 20px; }
-        .popup-unit { color: var(--accent); font-size: 12px; font-weight: bold; margin-bottom: 10px; display: block; }
         
-        /* Червоний блок Наслідків */
-        .impact-alert { 
-            background: var(--critical); color: #fff; 
-            padding: 15px; margin-top: 15px; border-radius: 4px;
-            font-size: 13px; line-height: 1.4;
+        @keyframes pulse-inner {
+            from { opacity: 0.1; transform: scale(0.8); }
+            to { opacity: 0.4; transform: scale(0.95); }
         }
-        .impact-alert b { display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .close-btn { float: right; cursor: pointer; font-size: 20px; line-height: 1; }
+        .node:hover .crystal-outer { fill: rgba(0, 242, 255, 0.25); stroke-width: 2px; }
+
+        /* Енергетичні промені */
+        .laser-line { 
+            stroke: var(--accent); stroke-opacity: 0.25; stroke-width: 1.5px;
+            stroke-dasharray: 10,20; animation: dash 3s linear infinite;
+        }
+        @keyframes dash { to { stroke-dashoffset: -100; } }
+
+        .node text { 
+            fill: #fff; font-size: 11px; letter-spacing: 1px; text-anchor: middle;
+            text-transform: uppercase; pointer-events: none; opacity: 0.8;
+        }
+
+        /* Стильне вікно HUD */
+        .hud-popup {
+            position: absolute; background: rgba(10, 20, 30, 0.85);
+            border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 12px;
+            padding: 0; z-index: 2000; width: 360px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.9);
+            display: none; overflow: hidden; backdrop-filter: blur(15px);
+            animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } }
+
+        .popup-header { 
+            background: linear-gradient(90deg, #001f2b, #004455); 
+            padding: 18px; border-bottom: 1px solid var(--accent);
+            font-size: 15px; font-weight: 500; letter-spacing: 1px;
+        }
+        .popup-body { padding: 20px; }
+        .popup-unit { color: var(--accent); font-size: 11px; font-weight: bold; margin-bottom: 8px; display: block; opacity: 0.7; }
+        
+        /* Вишневий блок Наслідків */
+        .impact-card { 
+            background: linear-gradient(135deg, var(--critical) 0%, #40070a 100%); 
+            color: #ffcccc; padding: 16px; margin-top: 20px; 
+            border-radius: 6px; font-size: 13px; line-height: 1.5;
+            border-right: 4px solid var(--critical-bright);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .impact-card b { display: block; margin-bottom: 6px; color: #fff; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
+
+        .close-btn { float: right; cursor: pointer; opacity: 0.6; transition: 0.3s; }
+        .close-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
 
 <div class="hud-header">
     <h1>GIDEON ANALYTICS</h1>
-    <p>OBJECT STATUS: 5 CRITICAL VULNERABILITIES DETECTED</p>
+    <p>OBJECT_TRACKING // ANALYSIS_MODE</p>
 </div>
 
 <canvas id="stars-bg"></canvas>
@@ -89,37 +106,36 @@
 
 <div id="hud-window" class="hud-popup">
     <div class="popup-header">
-        <span class="close-btn" onclick="hideHUD()">&times;</span>
-        <span id="h-title">Назва проблеми</span>
+        <span class="close-btn" onclick="hideHUD()">✕</span>
+        <span id="h-title">Planetary Issue</span>
     </div>
     <div class="popup-body">
-        <span id="h-unit" class="popup-unit">ПІДРОЗДІЛ</span>
-        <p id="h-desc" style="margin: 0; font-size: 14px; color: #ccc;"></p>
-        <div class="impact-alert">
-            <b>Наслідки:</b>
+        <span id="h-unit" class="popup-unit">UNITID: NULL</span>
+        <p id="h-desc" style="margin: 0; font-size: 14px; color: #cbd5e1;"></p>
+        <div class="impact-card">
+            <b>Аналіз наслідків:</b>
             <div id="h-impact"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- ЗОРЯНЕ НЕБО (БІЛЬШ ПОВІЛЬНЕ) ---
     const canvas = document.getElementById('stars-bg');
     const ctx = canvas.getContext('2d');
     let stars = [];
 
     function initStars() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        stars = Array.from({length: 200}, () => ({
+        stars = Array.from({length: 250}, () => ({
             x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-            r: Math.random() * 1.2, s: 0.1 + Math.random() * 0.2
+            r: Math.random() * 1.1, s: 0.05 + Math.random() * 0.15
         }));
     }
 
     function drawStars() {
-        ctx.fillStyle = "#05070a"; ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = "#020408"; ctx.fillRect(0,0,canvas.width, canvas.height);
         stars.forEach(s => {
+            ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.random()*0.7})`;
             ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
             s.x -= s.s; if(s.x < 0) s.x = canvas.width;
         });
@@ -127,55 +143,61 @@
     }
     initStars(); drawStars();
 
-    // --- ДАНІ ---
     const data = [
-        { n: "Боді-камери", u: "Всі підрозділи", d: "Невикористання поліцейськими портативних відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення офіцерів, нульовий контроль.", r: 42 },
-        { n: "Засоби захисту", u: "Черкаське РУП", d: "Брак шоломів та бронежилетів не нижче 4-го класу захисту.", i: "Критична загроза життю ПОГ у разі нападу чи протиправних дій.", r: 38 },
-        { n: "Транспорт", u: "Всі підрозділи", d: "Порушення вимог транспортної дисципліни та журналів.", i: "Скасування дозволів, адмінвідповідальність, вина керівника при ДТП.", r: 40 },
-        { n: "МТЗ Станцій", u: "Всі підрозділи", d: "Невідповідність станцій нормам, брак сейфів та пального.", i: "Ризик крадіжки зброї, негативний імідж офіцера в громаді.", r: 35 },
-        { n: "Комунікація", u: "Всі підрозділи", d: "Слабка взаємодія ТВП з органами місцевого самоврядування.", i: "Брак фінансування програм ПОГ (пальне, техзабезпечення).", r: 38 }
+        { n: "Боді-камери", u: "Всі підрозділи", d: "Систематичне невикористання портативних відеореєстраторів.", i: "Відсутність доказової бази під час документування правопорушень, безпідставні звинувачення та брак контролю.", r: 40 },
+        { n: "Засоби захисту", u: "Черкаське РУП", d: "Відсутність шоломів та бронежилетів не нижче 4-го класу.", i: "Загроза життю та здоров'ю ПОГ у разі раптового нападу чи активних протиправних дій.", r: 35 },
+        { n: "Транспорт", u: "Всі підрозділи", d: "Порушення вимог транспортної дисципліни та ведення журналів.", i: "Скасування дозволів на зберігання ТЗ, персональна відповідальність керівника при ДТП.", r: 42 },
+        { n: "МТЗ Станцій", u: "Всі підрозділи", d: "Невідповідність станцій нормам, брак сейфів для зброї.", i: "Ризик викрадення спецзасобів (рушниць), неможливість фіксації порушень ПДР, негативний імідж.", r: 38 },
+        { n: "Комунікація", u: "Всі підрозділи", d: "Відсутність взаємодії керівництва ТВП з органами ОТГ.", i: "Відсутність місцевих програм фінансування та належного забезпечення паливно-мастильними матеріалами.", r: 36 }
     ];
 
-    const nodes = [{ id: 0, n: "GIDEON CORE", type: "core", r: 55 }].concat(data.map((d, i) => ({ id: i+1, ...d, type: "issue" })));
+    const nodes = [{ id: 0, n: "GIDEON CORE", type: "core", r: 50 }].concat(data.map((d, i) => ({ id: i+1, ...d, type: "issue" })));
     const links = data.map((_, i) => ({ source: 0, target: i+1 }));
 
     const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
     const g = svg.append("g");
 
     const sim = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(260))
-        .force("charge", d3.forceManyBody().strength(-3500))
+        .force("link", d3.forceLink(links).id(d => d.id).distance(240))
+        .force("charge", d3.forceManyBody().strength(-3000))
         .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
 
     const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "laser-line");
 
     const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
-        .attr("class", d => `node ${d.type === 'core' ? 'node-core' : ''}`)
+        .attr("class", "node")
         .on("click", (e, d) => { if(d.id !== 0) showHUD(e, d); });
 
-    // Малюємо непрозорі Кристали (Гексагони)
+    // Кристали (Шар 1: Ядро, Шар 2: Оболонка)
     node.append("path")
-        .attr("class", "crystal-shape")
+        .attr("class", "crystal-outer")
         .attr("d", d => {
             const r = d.r;
-            return `M 0 -${r} L ${r*0.86} -${r/2} L ${r*0.86} ${r/2} L 0 ${r} L -${r*0.86} ${r/2} L -${r*0.86} -${r/2} Z`;
+            return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
+        });
+
+    node.append("path")
+        .attr("class", "crystal-inner")
+        .attr("d", d => {
+            const r = d.r * 0.7;
+            return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
         });
 
     node.append("text").attr("dy", d => d.r + 30).text(d => d.n);
 
     sim.on("tick", () => {
-        const t = Date.now() * 0.002;
-        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t + d.id)*6)})`);
+        const t = Date.now() * 0.0015;
+        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t + d.id)*8)})`);
         link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
     });
 
     function showHUD(e, d) {
         const hud = document.getElementById('hud-window');
         hud.style.display = 'block';
-        hud.style.left = Math.min(e.pageX + 30, window.innerWidth - 380) + 'px';
+        hud.style.left = Math.min(e.pageX + 30, window.innerWidth - 390) + 'px';
         hud.style.top = Math.max(e.pageY - 100, 20) + 'px';
         document.getElementById('h-title').innerText = d.n;
-        document.getElementById('h-unit').innerText = "ОБ'ЄКТ: " + d.u;
+        document.getElementById('h-unit').innerText = "OBJECT_LOCATION: " + d.u;
         document.getElementById('h-desc').innerText = d.d;
         document.getElementById('h-impact').innerText = d.i;
     }
