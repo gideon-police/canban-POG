@@ -1,95 +1,186 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON MONITOR</title>
+    <title>GIDEON | PLANETARY MONITOR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
-        body { margin: 0; background: #000; color: #00f2ff; font-family: sans-serif; overflow: hidden; }
-        canvas { position: absolute; top: 0; left: 0; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; color: #fff; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; }
         
-        #overlay {
-            position: absolute; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10; background: rgba(0,0,0,0.5);
+        #chart { width: 100%; height: 100%; position: absolute; z-index: 5; }
+
+        /* Стилізація планет-кнопок */
+        .node circle { 
+            cursor: pointer; 
+            stroke-width: 2px;
+            transition: r 0.3s, filter 0.3s;
+        }
+        .node:hover circle { filter: drop-shadow(0 0 25px rgba(0, 242, 255, 0.8)); }
+        
+        .node text { 
+            fill: #fff; 
+            font-size: 14px; 
+            font-weight: bold;
+            pointer-events: none; 
+            text-shadow: 0 0 10px #000;
+            text-transform: uppercase;
         }
 
-        .btn {
-            background: none; border: 2px solid #00f2ff; color: #00f2ff;
-            padding: 25px 40px; font-size: 20px; cursor: pointer;
-            text-transform: uppercase; letter-spacing: 2px;
-            box-shadow: 0 0 15px #00f2ff;
+        .link { stroke: #00f2ff; stroke-opacity: 0.15; stroke-width: 1px; stroke-dasharray: 4; }
+
+        /* Вікно з детальною інформацією */
+        #info-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 350px;
+            background: rgba(5, 15, 25, 0.9);
+            border: 1px solid #00f2ff;
+            border-left: 10px solid #00f2ff;
+            padding: 25px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
         }
+
+        #info-panel h2 { margin: 0 0 10px 0; font-size: 18px; color: #00f2ff; text-transform: uppercase; }
+        #info-panel .unit-tag { font-size: 12px; color: #aaa; margin-bottom: 15px; display: block; }
+        #info-panel .section-title { color: #ff4d4d; font-weight: bold; margin-top: 15px; display: block; font-size: 13px; }
+        #info-panel p { font-size: 14px; line-height: 1.6; margin: 5px 0; color: #e0e0e0; }
         
-        .btn:hover { background: #00f2ff; color: #000; }
-        
-        .info { margin-top: 20px; color: #fff; opacity: 0.8; font-size: 14px; text-align: center; }
-        
-        #chart { width: 100%; height: 100%; position: absolute; z-index: 5; visibility: hidden; }
+        .close-btn { position: absolute; top: 10px; right: 10px; cursor: pointer; color: #fff; font-size: 20px; }
+
+        .header-ui {
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            border-left: 3px solid #00f2ff; padding-left: 15px;
+        }
     </style>
 </head>
 <body>
 
-<canvas id="stars"></canvas>
-
-<div id="overlay">
-    <button class="btn" onclick="start()">Перевірка поліцейських офіцерів громади</button>
-    <div class="info">Відвідано 34 громади | Перевірено понад 50 ПОГ</div>
+<div class="header-ui">
+    <h1 style="margin:0; font-size: 22px; letter-spacing: 2px;">GIDEON: АНАЛІЗ ПОГ</h1>
+    <span style="font-size: 12px; opacity: 0.7;">34 ГРОМАДИ | 50+ ОФІЦЕРІВ</span>
 </div>
 
+<canvas id="stars"></canvas>
 <div id="chart"></div>
 
+<div id="info-panel">
+    <span class="close-btn" onclick="document.getElementById('info-panel').style.display='none'">&times;</span>
+    <h2 id="p-title">Назва проблеми</h2>
+    <span id="p-unit" class="unit-tag">Підрозділ</span>
+    <p id="p-desc">Опис проблеми...</p>
+    <span class="section-title">НАСЛІДКИ:</span>
+    <p id="p-impact">Наслідки...</p>
+</div>
+
 <script>
-    // Малюємо зірки
+    // --- ФОН: ЗОРЯНЕ НЕБО ---
     const canvas = document.getElementById('stars');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const sList = Array.from({length: 200}, () => ({x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*1.5}));
-    
+    let stars = [];
+    function init() {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        stars = Array.from({length: 300}, () => ({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            r: Math.random() * 1.5, o: Math.random(), s: Math.random() * 0.02
+        }));
+    }
     function draw() {
         ctx.clearRect(0,0,canvas.width, canvas.height);
-        ctx.fillStyle = "white";
-        sList.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
+        stars.forEach(s => {
+            ctx.globalAlpha = s.o; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+            s.o += s.s; if(s.o > 1 || s.o < 0) s.s *= -1;
+        });
         requestAnimationFrame(draw);
     }
-    draw();
+    init(); draw(); window.onresize = init;
 
-    function start() {
-        document.getElementById('overlay').style.display = 'none';
-        document.getElementById('chart').style.visibility = 'visible';
-        initGraph();
-    }
+    // --- ДАНІ ТА ГРАФ ---
+    const rawData = [
+        { 
+            n: "Боді-камери", 
+            d: "Невикористання поліцейськими портативних відеореєстраторів.", 
+            i: "Відсутність доказової бази, безпідставні звинувачення поліцейського, відсутність контролю.", 
+            u: "Всі підрозділи" 
+        },
+        { 
+            n: "Засоби захисту", 
+            d: "Відсутність належних шоломів та бронежилетів (не нижче 4-го класу).", 
+            i: "Ризик настання тяжких наслідків у разі нападу чи протиправних дій.", 
+            u: "Черкаське РУП" 
+        },
+        { 
+            n: "Транспорт", 
+            d: "Порушення транспортної дисципліни (шляхові листи, бортові журнали, дозволи на СЗС).", 
+            i: "Скасування дозволів на зберігання ТЗ, адмінвідповідальність, вина керівника при ДТП.", 
+            u: "Всі підрозділи поліції" 
+        },
+        { 
+            n: "МТЗ Станцій", 
+            d: "Невідповідність станцій нормам, брак сейфів для рушниць, брак пального.", 
+            i: "Ризик крадіжки зброї, відсутність фіксації ПДР, негативний імідж в громаді.", 
+            u: "Всі підрозділи поліції" 
+        },
+        { 
+            n: "Комунікація", 
+            d: "Відсутність комунікації керівництва ТВП з органами місцевого самоврядування.", 
+            i: "Відсутність місцевих програм фінансування ПОГів (пальне, сейфи, конуси).", 
+            u: "Всі підрозділи поліції" 
+        }
+    ];
 
-    function initGraph() {
-        const data = [
-            {n: "БОДІ-КАМЕРИ", d: "Невикористання реєстраторів"},
-            {n: "ЗАХИСТ", d: "Брак бронежилетів"},
-            {n: "ТРАНСПОРТ", d: "Порушення дисципліни"},
-            {n: "МТЗ", d: "Стан станцій/пальне"},
-            {n: "КОМУНІКАЦІЯ", d: "Зв'язок з ОТГ"}
-        ];
-        
-        const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
-        const g = svg.append("g").attr("transform", `translate(${window.innerWidth/2},${window.innerHeight/2})`);
-        
-        const nodes = [{id: 0, name: "GIDEON"}].concat(data.map((d, i) => ({id: i+1, name: d.n})));
-        const links = data.map((_, i) => ({source: 0, target: i+1}));
+    const nodes = [{ id: 0, n: "GIDEON", type: "center" }].concat(rawData.map((d, i) => ({ id: i+1, ...d, type: "planet" })));
+    const links = rawData.map((_, i) => ({ source: 0, target: i+1 }));
 
-        const sim = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(180))
-            .force("charge", d3.forceManyBody().strength(-800))
-            .on("tick", () => {
-                link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-                node.attr("transform", d => `translate(${d.x},${d.y})`);
-            });
+    const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
+    const g = svg.append("g");
 
-        const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("stroke", "#00f2ff").attr("opacity", 0.3);
-        const node = g.append("g").selectAll("g").data(nodes).enter().append("g");
-        
-        node.append("circle").attr("r", d => d.id === 0 ? 30 : 10).attr("fill", "#00f2ff").style("filter", "blur(1px)");
-        node.append("text").text(d => d.name).attr("dy", 30).attr("text-anchor", "middle").attr("fill", "#fff").style("font-size", "12px");
-    }
+    const sim = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(280))
+        .force("charge", d3.forceManyBody().strength(-2500))
+        .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
+
+    const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "link");
+
+    const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
+        .attr("class", "node")
+        .on("click", (e, d) => {
+            if(d.type === "planet") {
+                document.getElementById('info-panel').style.display = 'block';
+                document.getElementById('p-title').innerText = d.n;
+                document.getElementById('p-unit').innerText = d.u;
+                document.getElementById('p-desc').innerText = d.d;
+                document.getElementById('p-impact').innerText = d.i;
+            }
+        });
+
+    // Великі планети-кнопки
+    node.append("circle")
+        .attr("r", d => d.type === "center" ? 45 : 40)
+        .attr("fill", d => d.type === "center" ? "#00f2ff" : "rgba(26, 37, 51, 0.8)")
+        .attr("stroke", "#00f2ff")
+        .style("filter", d => d.type === "center" ? "drop-shadow(0 0 20px #00f2ff)" : "none");
+
+    node.append("text")
+        .attr("dy", d => d.type === "center" ? 70 : 65)
+        .attr("text-anchor", "middle")
+        .text(d => d.n);
+
+    sim.on("tick", () => {
+        link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+        node.attr("transform", d => `translate(${d.x},${d.y})`);
+    });
+
+    // Drag functionality
+    node.call(d3.drag()
+        .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+
 </script>
 </body>
 </html>
