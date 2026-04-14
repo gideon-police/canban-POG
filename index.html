@@ -2,175 +2,59 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | FLOW MONITOR</title>
+    <title>GIDEON | SPACE MONITOR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            background: radial-gradient(circle at center, #101a26 0%, #05080b 100%); 
-            color: #00f2ff; 
-            font-family: 'Segoe UI', Roboto, sans-serif; 
-            overflow: hidden; 
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
         
-        #chart { width: 100vw; height: 100vh; }
+        /* Фон із зірками */
+        #starfield { position: absolute; top: 0; left: 0; z-index: 0; }
 
-        /* Стиль ліній (зв'язків) */
-        .link { 
-            stroke: #00f2ff; 
-            stroke-opacity: 0.2; 
-            stroke-width: 1.5px;
-            stroke-dasharray: 5,5;
-            animation: dash 10s linear infinite;
-        }
+        /* Контейнер для графа (спочатку прихований) */
+        #chart { width: 100vw; height: 100vh; position: relative; z-index: 1; opacity: 0; transition: opacity 2s ease; pointer-events: none; }
+        #chart.visible { opacity: 1; pointer-events: all; }
 
-        @keyframes dash { to { stroke-dashoffset: -100; } }
-
-        /* Ефекти для вузлів */
-        .node circle { 
-            filter: drop-shadow(0 0 8px rgba(0, 242, 255, 0.8));
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .node:hover circle { 
-            filter: drop-shadow(0 0 15px rgba(0, 242, 255, 1));
-            r: 20; 
-        }
-
-        .node-center circle { 
-            fill: #00f2ff;
-            filter: drop-shadow(0 0 25px rgba(0, 242, 255, 0.6));
-        }
-
-        .node-critical circle { fill: #ff4d4d; filter: drop-shadow(0 0 12px #ff4d4d); }
-
-        .node text { 
-            font-size: 11px; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            fill: #ffffff;
-            text-shadow: 0 0 5px #000;
-            pointer-events: none;
-        }
-
-        /* Футуристичний Tooltip */
-        .tooltip {
+        /* Центральна кнопка */
+        #intro-overlay {
             position: absolute;
-            background: rgba(5, 10, 15, 0.9);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            transition: all 1s ease;
+        }
+
+        .main-btn {
+            background: rgba(0, 242, 255, 0.05);
             border: 1px solid #00f2ff;
-            padding: 20px;
-            border-radius: 2px;
-            max-width: 320px;
-            visibility: hidden;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+            color: #00f2ff;
+            padding: 30px 50px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
             backdrop-filter: blur(10px);
-            border-left: 5px solid #00f2ff;
+            transition: all 0.4s;
+            position: relative;
         }
 
-        .tooltip h3 { margin: 0 0 10px 0; font-size: 16px; color: #00f2ff; }
-        .tooltip p { margin: 0; font-size: 13px; line-height: 1.5; color: #ccc; }
-        .tooltip .warning-label { color: #ff4d4d; font-weight: bold; display: block; margin-top: 10px; }
-
-        /* UI Елементи */
-        .header {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            border-left: 3px solid #00f2ff;
-            padding-left: 15px;
+        .main-btn:hover {
+            background: rgba(0, 242, 255, 0.2);
+            box-shadow: 0 0 40px rgba(0, 242, 255, 0.5);
+            transform: scale(1.05);
         }
-        .header h1 { margin: 0; font-size: 20px; letter-spacing: 4px; }
-        .header span { font-size: 10px; opacity: 0.6; }
 
-    </style>
-</head>
-<body>
+        .stats-sub {
+            display: block;
+            font-size: 12px;
+            margin-top: 15px;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 1px;
+        }
 
-<div class="header">
-    <h1>GIDEON CONTROL</h1>
-    <span>SYSTEM ANALYSIS v1.0.4 // 34 COMMUNITIES</span>
-</div>
-
-<div id="chart"></div>
-<div id="tooltip" class="tooltip"></div>
-
-<script>
-const data = {
-    name: "ЦЕНТР КОНТРОЛЮ",
-    children: [
-        { name: "БОДІ-КАМЕРИ", desc: "Невикористання відеореєстраторів", impact: "Відсутність доказової бази, безпідставні звинувачення офіцерів.", unit: "ВСІ ПІДРОЗДІЛИ", type: "critical" },
-        { name: "ЗАХИСТ", desc: "Брак шоломів та бронежилетів", impact: "Загроза життю ПОГ при нападі. Відсутність 4-го класу захисту.", unit: "ЧЕРКАСЬКЕ РУП", type: "critical" },
-        { name: "ТРАНСПОРТ", desc: "Порушення дисципліни ТЗ", impact: "Адмінвідповідальність, скасування дозволів на зберігання ТЗ.", unit: "ВСІ ПІДРОЗДІЛИ", type: "warning" },
-        { name: "МТЗ СТАНЦІЙ", desc: "Проблеми інфраструктури", impact: "Ризик викрадення зброї (рушниць), брак пального для патрулювання.", unit: "ВСІ ПІДРОЗДІЛИ", type: "warning" },
-        { name: "КОМУНІКАЦІЯ", desc: "Слабка взаємодія з ОТГ", impact: "Відсутність місцевих програм фінансування та забезпечення.", unit: "ВСІ ПІДРОЗДІЛИ", type: "warning" }
-    ]
-};
-
-const width = window.innerWidth, height = window.innerHeight;
-const svg = d3.select("#chart").append("svg")
-    .attr("width", width)
-    .attr("height", height)
-    .call(d3.zoom().on("zoom", (event) => g.attr("transform", event.transform)))
-    .append("g");
-
-const g = svg.append("g").attr("transform", `translate(${width/2},${height/2})`);
-
-const nodes = [{ id: "root", name: data.name, type: "center" }];
-const links = [];
-
-data.children.forEach((child, i) => {
-    nodes.push({ ...child, id: `child_${i}`, type: child.type });
-    links.push({ source: "root", target: `child_${i}` });
-});
-
-const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(250))
-    .force("charge", d3.forceManyBody().strength(-1500))
-    .force("x", d3.forceX())
-    .force("y", d3.forceY());
-
-const link = g.append("g").selectAll(".link")
-    .data(links).enter().append("line").attr("class", "link");
-
-const node = g.append("g").selectAll(".node")
-    .data(nodes).enter().append("g")
-    .attr("class", d => `node node-${d.type}`)
-    .call(d3.drag()
-        .on("start", (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-        .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
-        .on("end", (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
-
-node.append("circle").attr("r", d => d.type === 'center' ? 35 : 12);
-
-node.append("text")
-    .attr("dy", d => d.type === 'center' ? 60 : 35)
-    .attr("text-anchor", "middle")
-    .text(d => d.name);
-
-node.on("mouseover", function(event, d) {
-    if(d.type !== 'center') {
-        d3.select("#tooltip")
-            .style("visibility", "visible")
-            .html(`<h3>${d.name}</h3>
-                   <p><strong>Суть:</strong> ${d.desc}</p>
-                   <p><strong>Локація:</strong> ${d.unit}</p>
-                   <span class="warning-label">НАСЛІДКИ:</span>
-                   <p>${d.impact}</p>`);
-    }
-})
-.on("mousemove", (event) => {
-    d3.select("#tooltip")
-        .style("top", (event.pageY - 20) + "px")
-        .style("left", (event.pageX + 25) + "px");
-})
-.on("mouseout", () => d3.select("#tooltip").style("visibility", "hidden"));
-
-simulation.on("tick", () => {
-    link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-    node.attr("transform", d => `translate(${d.x},${d.y})`);
-});
-</script>
-</body>
-</html>
+        /* Стилі для мапи (залишаємо з минулого разу) */
+        .link { stroke: #00f2ff; stroke-opacity: 0.2; stroke-dasharray: 5,5; animation: dash 10s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -100; } }
+        .node circle {
