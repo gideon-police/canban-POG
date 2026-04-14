@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>ПОГ-FLOW: Результати перевірки</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body { margin: 0; background-color: #0b0e14; color: white; font-family: sans-serif; overflow: hidden; }
+        #chart { width: 100vw; height: 100vh; }
+        .node circle { stroke: #1db954; stroke-width: 2px; }
+        .node text { font-size: 12px; fill: #e0e0e0; pointer-events: none; }
+        .link { stroke: #2a3441; stroke-opacity: 0.6; }
+        .tooltip {
+            position: absolute;
+            background: rgba(16, 22, 30, 0.95);
+            border: 1px solid #3d4b5c;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 300px;
+            visibility: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .critical { fill: #ff4d4d !important; } /* Для критичних вузлів */
+        .warning { fill: #ffa500 !important; }
+    </style>
+</head>
+<body>
+
+<div id="chart"></div>
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+const data = {
+    name: "КОМІСІЙНА ПЕРЕВІРКА\n(34 громади)",
+    children: [
+        {
+            name: "Боді-камери",
+            category: "Критично",
+            desc: "Невикористання відеореєстраторів",
+            impact: "Відсутність доказової бази, безпідставні звинувачення, нульовий контроль.",
+            unit: "Всі підрозділи"
+        },
+        {
+            name: "Засоби захисту",
+            category: "Безпека",
+            desc: "Відсутність шоломів та бронежилетів (4+ клас)",
+            impact: "Ризик настання тяжких наслідків у разі нападу на офіцера.",
+            unit: "Черкаське РУП"
+        },
+        {
+            name: "Транспортна дисципліна",
+            category: "Дисципліна",
+            desc: "Шляхові листи, бортові журнали, дозволи на СЗС",
+            impact: "Скасування дозволів, адмінвідповідальність, покладання вини на керівника при ДТП.",
+            unit: "Всі підрозділи"
+        },
+        {
+            name: "Матеріальне забезпечення",
+            category: "МТЗ",
+            desc: "Невідповідність станцій, брак сейфів, пального",
+            impact: "Ризик викрадення зброї, негативний імідж ПОГ, відсутність фіксації ПДР.",
+            unit: "Всі підрозділи"
+        },
+        {
+            name: "Комунікація",
+            category: "Управління",
+            desc: "Відсутність діалогу ТВП з ОТГ",
+            impact: "Брак програм фінансування (пальне, сейфи, спецзасоби).",
+            unit: "Всі підрозділи"
+        }
+    ]
+};
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const svg = d3.select("#chart").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .append("g")
+    .attr("transform", `translate(${width/2},${height/2})`);
+
+// Симуляція сил (Force Layout)
+const simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().id(d => d.id).distance(200))
+    .force("charge", d3.forceManyBody().strength(-1000))
+    .force("center", d3.forceCenter(0, 0));
+
+// Перетворення даних для графа
+const nodes = [{ id: "root", name: data.name, type: "center" }];
+const links = [];
+
+data.children.forEach((child, i) => {
+    nodes.push({ ...child, id: `child_${i}`, type: "issue" });
+    links.push({ source: "root", target: `child_${i}` });
+});
+
+const link = svg.append("g").selectAll(".link")
+    .data(links).enter().append("line").attr("class", "link");
+
+const node = svg.append("g").selectAll(".node")
+    .data(nodes).enter().append("g")
+    .attr("class", "node")
+    .on("mouseover", function(event, d) {
+        if(d.type === 'issue') {
+            d3.select("#tooltip")
+                .style("visibility", "visible")
+                .html(`<strong>${d.desc}</strong><br><br>
+                       <small>Підрозділ:</small> ${d.unit}<br>
+                       <small>Наслідки:</small> ${d.impact}`);
+        }
+    })
+    .on("mousemove", (event) => {
+        d3.select("#tooltip")
+            .style("top", (event.pageY + 10) + "px")
+            .style("left", (event.pageX + 10) + "px");
+    })
+    .on("mouseout", () => d3.select("#tooltip").style("visibility", "hidden"));
+
+node.append("circle")
+    .attr("r", d => d.type === 'center' ? 40 : 15)
+    .attr("class", d => d.type === 'issue' ? 'critical' : '');
+
+node.append("text")
+    .attr("dy", 30)
+    .attr("text-anchor", "middle")
+    .text(d => d.name);
+
+simulation.nodes(nodes).on("tick", () => {
+    link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+    node.attr("transform", d => `translate(${d.x},${d.y})`);
+});
+
+simulation.force("link").links(links);
+</script>
+</body>
+</html>
