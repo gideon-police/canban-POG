@@ -2,166 +2,171 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | STRATEGIC HOLO-INTERFACE</title>
+    <title>GIDEON | ANALYTIC INTERFACE</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; color: #fff; }
+        :root {
+            --accent: #00f2ff;
+            --critical: #ff3030;
+            --bg: #05070a;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: var(--bg); 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            color: #fff; 
+        }
         
         canvas { position: absolute; top: 0; left: 0; z-index: 1; }
-        #chart { width: 100%; height: 100%; position: absolute; z-index: 10; cursor: crosshair; }
+        #chart { width: 100%; height: 100%; position: absolute; z-index: 10; }
 
-        /* HUD - Вертикальний Дашборд (Ліворуч) */
-        .hud-left {
-            position: absolute; top: 40px; left: 30px; z-index: 100;
-            border-left: 3px solid #00f2ff; padding-left: 15px;
-            pointer-events: none; text-transform: uppercase; letter-spacing: 2px;
+        /* HUD - Панель управління */
+        .hud-header {
+            position: absolute; top: 40px; left: 40px; z-index: 100;
+            border-left: 4px solid var(--accent); padding-left: 20px;
+            pointer-events: none;
         }
+        .hud-header h1 { margin: 0; font-size: 26px; letter-spacing: 1px; text-transform: uppercase; }
+        .hud-header p { margin: 5px 0; font-size: 13px; color: var(--accent); opacity: 0.8; }
 
-        /* HUD - Аналіз Ризику (Праворуч) */
-        .hud-right {
-            position: absolute; top: 40px; right: 30px; z-index: 100;
-            text-align: right; pointer-events: none;
+        /* Стиль Вузлів (Кристали) */
+        .node { cursor: pointer; }
+        .crystal-shape { 
+            fill: #1a2635; stroke: var(--accent); stroke-width: 2px;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.3));
         }
-        .threat-count { font-size: 36px; font-weight: bold; color: #ff4d4d; text-shadow: 0 0 20px #ff4d4d; }
+        .node-core .crystal-shape { fill: var(--accent); stroke: #fff; }
 
-        /* Новий стиль вузлів (Голографічні Кристали) */
-        .node { cursor: pointer; transition: all 0.5s ease; }
-        .node-octahedron { 
-            fill: none; stroke: #00f2ff; stroke-width: 2px;
-            filter: drop-shadow(0 0 10px #00f2ff); animation: rotateCube 15s linear infinite;
+        /* Зв'язки-лазери */
+        .laser-line { 
+            stroke: var(--accent); stroke-opacity: 0.4; stroke-width: 2px;
+            stroke-dasharray: 8; animation: pulse-dash 2s linear infinite;
         }
-        .node-core { stroke-width: 3px; stroke: #fff; filter: drop-shadow(0 0 20px #fff); }
+        @keyframes pulse-dash { to { stroke-dashoffset: -16; } }
 
-        /* Лазерні промені зв'язку */
-        .link-laser { 
-            fill: none; stroke: rgba(0, 242, 255, 0.5); stroke-width: 1px;
-            stroke-dasharray: 10,20; animation: dash 5s linear infinite;
-        }
-
-        @keyframes dash { to { stroke-dashoffset: -100; } }
-
-        /* Текст вузлів */
+        /* Текстові підписи */
         .node text { 
-            fill: #fff; font-size: 11px; text-anchor: middle; font-weight: bold;
-            text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px #000;
+            fill: #fff; font-size: 13px; font-weight: 600; text-anchor: middle;
+            text-transform: uppercase; pointer-events: none;
         }
 
-        /* HUD Вікно */
+        /* HUD Popup - Вікно інформації */
         .hud-popup {
-            position: absolute; background: rgba(0, 15, 30, 0.95);
-            border: 2px solid #00f2ff; border-radius: 4px;
-            padding: 20px; z-index: 2000; width: 340px;
-            backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0, 242, 255, 0.5);
-            display: none; animation: slideInHUD 0.3s ease; pointer-events: all;
+            position: absolute; background: #0c121d;
+            border: 2px solid var(--accent); border-radius: 8px;
+            padding: 0; z-index: 2000; width: 350px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            display: none; overflow: hidden; animation: popIn 0.2s ease-out;
         }
 
-        @keyframes slideInHUD { from { opacity: 0; transform: translateY(20px); } }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } }
 
-        .hud-popup h3 { margin: 0; color: #00f2ff; text-transform: uppercase; font-size: 18px; letter-spacing: 3px; }
-        .hud-popup .unit { font-size: 11px; color: #ff4d4d; display: block; margin-bottom: 10px; font-weight: bold; }
-        .hud-popup .impact-block { 
-            margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;
-            font-size: 13px; color: #ffbcbc; background: rgba(255, 77, 77, 0.1); border-radius: 4px; padding: 10px;
+        .popup-header { background: var(--accent); color: #000; padding: 15px; font-weight: bold; font-size: 16px; }
+        .popup-body { padding: 20px; }
+        .popup-unit { color: var(--accent); font-size: 12px; font-weight: bold; margin-bottom: 10px; display: block; }
+        
+        /* Червоний блок Наслідків */
+        .impact-alert { 
+            background: var(--critical); color: #fff; 
+            padding: 15px; margin-top: 15px; border-radius: 4px;
+            font-size: 13px; line-height: 1.4;
         }
+        .impact-alert b { display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
 
+        .close-btn { float: right; cursor: pointer; font-size: 20px; line-height: 1; }
     </style>
 </head>
 <body>
 
-<div class="hud-left">
-    <h1 style="margin:0; font-size: 24px; letter-spacing: 5px;">GIDEON // HOLO</h1>
-    <div id="status-display" style="font-size: 11px; opacity: 0.8; margin-top:5px;">SYSTEM_STATUS: ACTIVE // DEEP SCAN</div>
-</div>
-
-<div class="hud-right">
-    <div style="font-size: 11px; opacity: 0.8;">THREAT_UNITS</div>
-    <div class="threat-count">05</div>
-    <div style="font-size: 11px; opacity: 0.8; margin-top:5px;">LEVEL: CRITICAL</div>
+<div class="hud-header">
+    <h1>GIDEON ANALYTICS</h1>
+    <p>OBJECT STATUS: 5 CRITICAL VULNERABILITIES DETECTED</p>
 </div>
 
 <canvas id="stars-bg"></canvas>
 <div id="chart"></div>
 
 <div id="hud-window" class="hud-popup">
-    <div style="float:right; cursor:pointer;" onclick="hideHUD()">[X]</div>
-    <h3 id="h-title">Planetary Issue</h3>
-    <span id="h-unit" class="unit">SECTOR_ANALYSIS</span>
-    <p id="h-desc" style="font-size: 13px; line-height: 1.5; color: #ccc; font-family: sans-serif;"></p>
-    <div class="impact-block" id="h-impact"></div>
+    <div class="popup-header">
+        <span class="close-btn" onclick="hideHUD()">&times;</span>
+        <span id="h-title">Назва проблеми</span>
+    </div>
+    <div class="popup-body">
+        <span id="h-unit" class="popup-unit">ПІДРОЗДІЛ</span>
+        <p id="h-desc" style="margin: 0; font-size: 14px; color: #ccc;"></p>
+        <div class="impact-alert">
+            <b>Наслідки:</b>
+            <div id="h-impact"></div>
+        </div>
+    </div>
 </div>
 
 <script>
-    // --- 1. КІНЕМАТОГРАФІЧНИЙ КОСМОС (Паралакс) ---
+    // --- ЗОРЯНЕ НЕБО (БІЛЬШ ПОВІЛЬНЕ) ---
     const canvas = document.getElementById('stars-bg');
     const ctx = canvas.getContext('2d');
     let stars = [];
 
     function initStars() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        stars = Array.from({length: 300}, () => ({
+        stars = Array.from({length: 200}, () => ({
             x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-            r: Math.random() * 1.5, speed: Math.random() * 0.5
+            r: Math.random() * 1.2, s: 0.1 + Math.random() * 0.2
         }));
     }
 
     function drawStars() {
-        ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#05070a"; ctx.fillRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = "#fff";
         stars.forEach(s => {
             ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
-            s.x -= s.speed; if(s.x < 0) s.x = canvas.width;
+            s.x -= s.s; if(s.x < 0) s.x = canvas.width;
         });
         requestAnimationFrame(drawStars);
     }
     initStars(); drawStars();
 
-    // --- 2. ДАНІ ТА ВУЗЛИ (ГОЛОГРАФІЧНІ КРИСТАЛИ) ---
+    // --- ДАНІ ---
     const data = [
-        { n: "Боді-камери", d: "Невикористання портативних відеореєстраторів поліцейськими громади.", i: "Відсутність доказової бази, безпідставні звинувачення офіцерів, нульовий контроль.", u: "ALL UNITS", r: 40 },
-        { n: "Засоби захисту", d: "Брак шоломів та бронежилетів не нижче 4-го класу захисту.", i: "Критична загроза життю ПОГ у разі нападу чи протиправних дій.", u: "CHERKASY RUP", r: 35 },
-        { n: "Транспорт", d: "Порушення вимог транспортної дисципліни та журналів.", i: "Скасування дозволів, адмінвідповідальність, вина керівника при ДТП.", u: "ALL UNITS", r: 38 },
-        { n: "МТЗ Станцій", d: "Невідповідність станцій нормам, брак сейфів для зброї та пального.", i: "Ризик крадіжки зброї, негативний імідж офіцера в громаді.", u: "ALL UNITS", r: 32 },
-        { n: "Комунікація", d: "Слабка взаємодія ТВП з органами місцевого самоврядування.", i: "Брак фінансування програм ПОГ (пальне, техзабезпечення).", u: "ALL UNITS", r: 35 }
+        { n: "Боді-камери", u: "Всі підрозділи", d: "Невикористання поліцейськими портативних відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення офіцерів, нульовий контроль.", r: 42 },
+        { n: "Засоби захисту", u: "Черкаське РУП", d: "Брак шоломів та бронежилетів не нижче 4-го класу захисту.", i: "Критична загроза життю ПОГ у разі нападу чи протиправних дій.", r: 38 },
+        { n: "Транспорт", u: "Всі підрозділи", d: "Порушення вимог транспортної дисципліни та журналів.", i: "Скасування дозволів, адмінвідповідальність, вина керівника при ДТП.", r: 40 },
+        { n: "МТЗ Станцій", u: "Всі підрозділи", d: "Невідповідність станцій нормам, брак сейфів та пального.", i: "Ризик крадіжки зброї, негативний імідж офіцера в громаді.", r: 35 },
+        { n: "Комунікація", u: "Всі підрозділи", d: "Слабка взаємодія ТВП з органами місцевого самоврядування.", i: "Брак фінансування програм ПОГ (пальне, техзабезпечення).", r: 38 }
     ];
 
-    const nodes = [{ id: 0, n: "GIDEON CORE", type: "core", r: 50, d: "", i: "", u: "" }].concat(data.map((d, i) => ({ id: i+1, ...d, type: "issue" })));
+    const nodes = [{ id: 0, n: "GIDEON CORE", type: "core", r: 55 }].concat(data.map((d, i) => ({ id: i+1, ...d, type: "issue" })));
     const links = data.map((_, i) => ({ source: 0, target: i+1 }));
 
     const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
     const g = svg.append("g");
 
     const sim = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(280))
-        .force("charge", d3.forceManyBody().strength(-4000))
+        .force("link", d3.forceLink(links).id(d => d.id).distance(260))
+        .force("charge", d3.forceManyBody().strength(-3500))
         .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
 
-    // Динамічні Лазерні зв'язки
-    const link = g.append("g").selectAll("line")
-        .data(links).enter().append("line")
-        .attr("class", "link-laser");
+    const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "laser-line");
 
     const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
-        .attr("class", d => `node node-${d.type}`)
+        .attr("class", d => `node ${d.type === 'core' ? 'node-core' : ''}`)
         .on("click", (e, d) => { if(d.id !== 0) showHUD(e, d); });
 
-    // Малюємо Гексагональний Кристал (Вузол)
+    // Малюємо непрозорі Кристали (Гексагони)
     node.append("path")
-        .attr("class", d => `node-octahedron ${d.type === 'core' ? 'node-core' : ''}`)
+        .attr("class", "crystal-shape")
         .attr("d", d => {
             const r = d.r;
-            // Шлях для гексагональної піраміди
-            return `M 0 -${r} L ${r*0.866} -${r/2} L ${r*0.866} ${r/2} L 0 ${r} L -${r*0.866} ${r/2} L -${r*0.866} -${r/2} Z`;
+            return `M 0 -${r} L ${r*0.86} -${r/2} L ${r*0.86} ${r/2} L 0 ${r} L -${r*0.86} ${r/2} L -${r*0.86} -${r/2} Z`;
         });
 
-    node.append("text").attr("dy", d => d.type === 'core' ? 80 : d.r + 30).text(d => d.n);
+    node.append("text").attr("dy", d => d.r + 30).text(d => d.n);
 
     sim.on("tick", () => {
-        const t = Date.now() * 0.001;
-        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t + d.id)*4)})`);
-        
-        // Оновлення позиції лазерів
-        link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
-            .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+        const t = Date.now() * 0.002;
+        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t + d.id)*6)})`);
+        link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
     });
 
     function showHUD(e, d) {
@@ -170,19 +175,17 @@
         hud.style.left = Math.min(e.pageX + 30, window.innerWidth - 380) + 'px';
         hud.style.top = Math.max(e.pageY - 100, 20) + 'px';
         document.getElementById('h-title').innerText = d.n;
-        document.getElementById('h-unit').innerText = "UNIT: " + d.u;
+        document.getElementById('h-unit').innerText = "ОБ'ЄКТ: " + d.u;
         document.getElementById('h-desc').innerText = d.d;
-        document.getElementById('h-impact').innerHTML = "<b>АНАЛІЗ НАСЛІДКІВ:</b><br>" + d.i;
+        document.getElementById('h-impact').innerText = d.i;
     }
 
     function hideHUD() { document.getElementById('hud-window').style.display = 'none'; }
 
-    // Drag functionality
     node.call(d3.drag()
         .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
         .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; hideHUD(); })
         .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
-
 </script>
 </body>
 </html>
