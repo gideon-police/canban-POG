@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>GIDEON | ULTIMATE COMMAND</title>
+    <title>GIDEON | BIG SCREEN COMMAND</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         :root { --accent: #00f2ff; --critical: #6b0a0a; --bright-red: #ff3c3c; --bg: #010408; }
@@ -10,49 +10,52 @@
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
         #chart { width: 100%; height: 100%; position: absolute; z-index: 10; }
 
-        /* HUD */
-        .hud-header { position: absolute; top: 40px; left: 40px; z-index: 100; border-left: 3px solid var(--accent); padding-left: 20px; pointer-events: none; }
-        .hud-header h1 { margin: 0; font-size: 24px; letter-spacing: 4px; font-weight: 300; text-transform: uppercase; }
+        /* HUD - Збільшено */
+        .hud-header { position: absolute; top: 60px; left: 60px; z-index: 100; border-left: 6px solid var(--accent); padding-left: 30px; pointer-events: none; }
+        .hud-header h1 { margin: 0; font-size: 48px; letter-spacing: 8px; font-weight: 300; text-transform: uppercase; }
         
-        /* Кнопка Аудиту */
+        /* Кнопка Аудиту - Збільшено */
         .audit-btn {
-            position: absolute; top: 40px; right: 40px; z-index: 200;
-            background: rgba(0, 242, 255, 0.1); border: 1px solid var(--accent);
-            color: var(--accent); padding: 10px 20px; cursor: pointer;
-            font-family: monospace; font-size: 12px; letter-spacing: 2px;
-            transition: all 0.3s;
+            position: absolute; top: 60px; right: 60px; z-index: 200;
+            background: rgba(0, 242, 255, 0.1); border: 2px solid var(--accent);
+            color: var(--accent); padding: 20px 40px; cursor: pointer;
+            font-family: monospace; font-size: 20px; letter-spacing: 4px;
+            transition: all 0.3s; font-weight: bold;
         }
-        .audit-btn:hover { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent); }
+        .audit-btn:hover { background: var(--accent); color: #000; box-shadow: 0 0 40px var(--accent); }
 
         /* Кристали */
         .node { cursor: pointer; }
-        .crystal-outer { fill: rgba(0, 242, 255, 0.05); stroke: var(--accent); stroke-width: 1.5px; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4)); }
-        .crystal-inner { fill: var(--accent); opacity: 0.15; animation: breathe 3s ease-in-out infinite alternate; }
-        @keyframes breathe { from { opacity: 0.05; transform: scale(0.7); } to { opacity: 0.3; transform: scale(0.9); } }
+        .crystal-outer { fill: rgba(0, 242, 255, 0.05); stroke: var(--accent); stroke-width: 3px; filter: drop-shadow(0 0 20px rgba(0, 242, 255, 0.5)); }
+        .crystal-inner { fill: var(--accent); opacity: 0.2; animation: breathe 3s ease-in-out infinite alternate; }
+        @keyframes breathe { from { opacity: 0.1; transform: scale(0.7); } to { opacity: 0.4; transform: scale(0.9); } }
 
-        /* Лазери */
-        .laser-line { stroke: var(--accent); stroke-opacity: 0.2; stroke-width: 1px; stroke-dasharray: 5, 15; animation: flow 4s linear infinite; }
+        /* Лазери - Товстіші */
+        .laser-line { stroke: var(--accent); stroke-opacity: 0.3; stroke-width: 3px; stroke-dasharray: 10, 20; animation: flow 4s linear infinite; }
         @keyframes flow { to { stroke-dashoffset: -100; } }
 
-        .node text { fill: #fff; font-size: 11px; letter-spacing: 2px; text-anchor: middle; text-transform: uppercase; pointer-events: none; opacity: 0.7; font-weight: bold; }
+        /* Текст вузлів - Збільшено */
+        .node text { fill: #fff; font-size: 20px; letter-spacing: 3px; text-anchor: middle; text-transform: uppercase; pointer-events: none; font-weight: bold; text-shadow: 0 0 15px #000; }
 
-        /* HUD Popup */
+        /* HUD Popup - Масштабовано */
         .hud-popup {
-            position: absolute; background: rgba(5, 10, 15, 0.95); border: 1px solid var(--accent);
-            border-radius: 4px; padding: 0; z-index: 2000; width: 300px;
-            box-shadow: 0 0 30px rgba(0,0,0,1); overflow: hidden; backdrop-filter: blur(10px);
+            position: absolute; background: rgba(5, 10, 15, 0.98); border: 2px solid var(--accent);
+            border-radius: 8px; padding: 0; z-index: 2000; width: 500px;
+            box-shadow: 0 0 60px rgba(0,0,0,1); overflow: hidden; backdrop-filter: blur(15px);
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .popup-header { background: rgba(0, 242, 255, 0.15); border-bottom: 1px solid var(--accent); padding: 10px 15px; font-size: 12px; font-weight: bold; }
-        .popup-body { padding: 15px; }
-        .impact-box { background: linear-gradient(90deg, var(--critical), #300000); color: #ffbaba; padding: 10px; margin-top: 10px; border-left: 3px solid var(--bright-red); font-size: 11px; }
+        .popup-header { background: rgba(0, 242, 255, 0.2); border-bottom: 2px solid var(--accent); padding: 20px 30px; font-size: 22px; font-weight: bold; letter-spacing: 2px; }
+        .popup-body { padding: 30px; }
+        .impact-box { background: linear-gradient(90deg, var(--critical), #400000); color: #ffcccc; padding: 20px; margin-top: 20px; border-left: 6px solid var(--bright-red); font-size: 18px; line-height: 1.6; font-weight: 500; }
+        .impact-box b { color: #fff; text-transform: uppercase; font-size: 16px; display: block; margin-bottom: 10px; letter-spacing: 2px; }
+        .close-x { float: right; cursor: pointer; color: var(--accent); font-size: 24px; }
     </style>
 </head>
 <body>
 
 <div class="hud-header">
     <h1>GIDEON ANALYTICS</h1>
-    <div id="stats" style="font-size: 10px; color: var(--accent); margin-top: 8px; font-family: monospace;">STATUS: READY // ENCRYPTION: ACTIVE</div>
+    <div id="stats" style="font-size: 18px; color: var(--accent); margin-top: 15px; font-family: monospace; letter-spacing: 2px;">STATUS: READY // THREAT: CRITICAL</div>
 </div>
 
 <button class="audit-btn" onclick="runGlobalAudit()">RUN GLOBAL AUDIT</button>
@@ -66,26 +69,23 @@
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
-    let mouse = { x: -100, y: -100 };
 
     function initBG() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     }
 
-    // Цифровий шлейф за мишкою
     window.addEventListener('mousemove', (e) => {
-        mouse.x = e.clientX; mouse.y = e.clientY;
-        for(let i=0; i<2; i++) {
-            particles.push({ x: e.clientX, y: e.clientY, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 1 });
+        for(let i=0; i<3; i++) {
+            particles.push({ x: e.clientX, y: e.clientY, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 1, size: Math.random()*4 });
         }
     });
 
     function drawBG() {
-        ctx.fillStyle = "rgba(1, 4, 8, 0.15)"; ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(1, 4, 8, 0.2)"; ctx.fillRect(0,0,canvas.width, canvas.height);
         particles.forEach((p, i) => {
             ctx.fillStyle = `rgba(0, 242, 255, ${p.life})`;
-            ctx.fillRect(p.x, p.y, 2, 2);
-            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            p.x += p.vx; p.y += p.vy; p.life -= 0.015;
             if(p.life <= 0) particles.splice(i, 1);
         });
         requestAnimationFrame(drawBG);
@@ -93,36 +93,35 @@
     initBG(); drawBG(); window.onresize = initBG;
 
     const data = [
-        { id: 1, n: "Боді-камери", u: "Всі підрозділи", d: "Невикористання відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення." },
-        { id: 2, n: "Засоби захисту", u: "Черкаське РУП", d: "Брак шоломів/бронежилетів.", i: "Загроза життю ПОГ у разі нападу." },
-        { id: 3, n: "Транспорт", u: "Всі підрозділи", d: "Порушення дисципліни ТЗ.", i: "Скасування дозволів, адмінвідповідальність." },
-        { id: 4, n: "МТЗ Станцій", u: "Всі підрозділи", d: "Невідповідність нормам.", i: "Ризик викрадення зброї, негативний імідж." },
-        { id: 5, n: "Комунікація", u: "Всі підрозділи", d: "Слабка взаємодія ТВП-ОТГ.", i: "Брак фінансування програм ПОГ." }
+        { id: 1, n: "Боді-камери", u: "Всі підрозділи", d: "Систематичне невикористання відеореєстраторів.", i: "Відсутність доказової бази, безпідставні звинувачення, нульовий контроль." },
+        { id: 2, n: "Засоби захисту", u: "Черкаське РУП", d: "Брак шоломів та бронежилетів (4 клас).", i: "Загроза життю ПОГ у разі нападу чи протиправних дій." },
+        { id: 3, n: "Транспорт", u: "Всі підрозділи", d: "Порушення транспортної дисципліни.", i: "Скасування дозволів, адмінвідповідальність, вина керівника при ДТП." },
+        { id: 4, n: "МТЗ Станцій", u: "Всі підрозділи", d: "Невідповідність станцій нормам.", i: "Ризик викрадення зброї, негативний імідж офіцера в громаді." },
+        { id: 5, n: "Комунікація", u: "Всі підрозділи", d: "Слабка взаємодія ТВП з ОТГ.", i: "Брак програм фінансування та матеріального забезпечення." }
     ];
 
-    // Створення вікон
     const container = document.getElementById('popups-container');
     data.forEach(d => {
         container.innerHTML += `
             <div id="pop-${d.id}" class="hud-popup" style="display:none; opacity:0;">
-                <div class="popup-header"><span style="float:right;cursor:pointer" onclick="closeOne(${d.id})">×</span>${d.n}</div>
+                <div class="popup-header"><span class="close-x" onclick="closeOne(${d.id})">×</span>${d.n}</div>
                 <div class="popup-body">
-                    <div style="font-size:10px;color:var(--accent)">${d.u}</div>
-                    <div style="font-size:12px;margin:5px 0">${d.d}</div>
+                    <div style="font-size:16px;color:var(--accent);font-weight:bold;margin-bottom:10px">${d.u}</div>
+                    <div style="font-size:20px;margin:15px 0;line-height:1.4">${d.d}</div>
                     <div class="impact-box"><b>Наслідки:</b>${d.i}</div>
                 </div>
             </div>`;
     });
 
-    const nodes = [{ id: 0, n: "CORE", r: 50 }].concat(data.map(d => ({ ...d, r: 35 })));
+    const nodes = [{ id: 0, n: "CORE", r: 100 }].concat(data.map(d => ({ ...d, r: 75 })));
     const links = data.map(d => ({ source: 0, target: d.id }));
 
     const svg = d3.select("#chart").append("svg").attr("width", "100%").attr("height", "100%");
     const g = svg.append("g");
 
     const sim = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(240))
-        .force("charge", d3.forceManyBody().strength(-3000))
+        .force("link", d3.forceLink(links).id(d => d.id).distance(400))
+        .force("charge", d3.forceManyBody().strength(-8000))
         .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2));
 
     const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "laser-line");
@@ -136,18 +135,18 @@
     node.append("path").attr("class", "crystal-inner").attr("d", d => {
         const r = d.r*0.7; return `M 0 -${r} L ${r*0.8} -${r*0.5} L ${r*0.8} ${r*0.5} L 0 ${r} L -${r*0.8} ${r*0.5} L -${r*0.8} -${r*0.5} Z`;
     });
-    node.append("text").attr("dy", d => d.r + 35).text(d => d.n);
+    node.append("text").attr("dy", d => d.r + 50).text(d => d.n);
 
     sim.on("tick", () => {
         const t = Date.now()*0.0015;
-        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t+d.id)*10)})`);
+        node.attr("transform", d => `translate(${d.x},${d.y + (d.id === 0 ? 0 : Math.sin(t+d.id)*15)})`);
         link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
     });
 
     function togglePop(e, id) {
         const p = document.getElementById(`pop-${id}`);
         p.style.display = 'block';
-        setTimeout(() => { p.style.opacity = '1'; p.style.left = e.pageX+'px'; p.style.top = e.pageY+'px'; }, 10);
+        setTimeout(() => { p.style.opacity = '1'; p.style.left = Math.min(e.pageX, window.innerWidth - 520)+'px'; p.style.top = Math.min(e.pageY, window.innerHeight - 400)+'px'; }, 10);
     }
 
     function closeOne(id) { document.getElementById(`pop-${id}`).style.opacity = '0'; setTimeout(() => document.getElementById(`pop-${id}`).style.display = 'none', 500); }
@@ -158,11 +157,16 @@
             p.style.display = 'block';
             setTimeout(() => {
                 p.style.opacity = '1';
-                p.style.left = (50 + (index * 320) % (window.innerWidth - 300)) + 'px';
-                p.style.top = (150 + (index * 100) % (window.innerHeight - 300)) + 'px';
+                p.style.left = (60 + (index * 200) % (window.innerWidth - 550)) + 'px';
+                p.style.top = (250 + (index * 80) % (window.innerHeight - 450)) + 'px';
             }, index * 200);
         });
     }
+
+    node.call(d3.drag()
+        .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
 </script>
 </body>
 </html>
